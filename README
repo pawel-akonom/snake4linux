@@ -1,0 +1,64 @@
+
+		#################
+		#		#
+		#     SNAKE     #
+		#		#
+		#################
+
+
+INSTALACJA
+##########
+
+Grę instaluje się będąc w katalogu z rozpakowaną grą poleceniem :
+
+$ make install
+
+Odinstalowuje poleceniem :
+
+$ make uninstall
+
+Gra instaluje się w katalogu "snake" w katalogu domowym użytkownika.
+
+!UWAGA
+~~~~~~
+W niektórych dystrybucjach biblioteka do ncurses nie znajdujes się w
+/usr/include/ncurses lecz w /usr/include. Aby móc skompilować grę
+należy wówczas zmienić wartość zmiennej SCIAZKA_NCURSES w pliku Makefile
+
+NCURSES
+#######
+
+Gra została napisana na bazie biblioteki "ncurses", więc jeżeli
+nie jest ona zainstalowana w twoim linuxie, gra nie będzie działać.
+Jeśli twoja dystrybucja Linuxa to Debian/Ubuntu upewnij się że masz
+zainstalowany pakiet ncurses-devel. Jeśli twoja dystrybucja linuksa to
+Fedora/Rhel upewnij się że masz zainstalowany pakiet libncurses-dev.
+
+OPCJE
+#####
+
+Minimalna wymagana wielkość okna to 32 * 10. Od wielkości okna zależy ilość
+zdobytych punktów. Im mniejsze okno i szybszy wąż tym więcej punktów za
+powiększenie węża o jeden element. Nie trzeba wychodzić z gry, żeby zmienić
+wielkość okna. Po menu i ustawieniach można poruszać się za pomocą klawiszy
+kursora : lewo - prawo (góra - dół przy zmianie wielkości okna). Zatwierdza
+się klawiszem 'Enter'. Gra zapisuje 3 najlepsze wyniki. Istnieje możliwość
+zmiany znaku reprezentującego węża i element wprowadzając go z klawiatury. 
+Ustawienia można zapisać na stałe. Naciśnięcie litery q podczas gry powoduje
+powrót do menu.
+
+GNU
+###
+
+Jest to gra freewerowa napisana w C i C++. Można ją rozpowszechniać na
+licencji GNU {właściwie to trzeba ;) }. Licencja dołączona jest do
+instalki.
+
+AUTOR
+#####
+
+student UZ Pawel Akonom
+
+Pretensje i zażalenia można kierować pod adres:
+
+akus82@o2.pl
