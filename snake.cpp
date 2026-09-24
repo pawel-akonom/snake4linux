@@ -811,7 +811,13 @@ void gra (konf ** ustawienia)
  while(key != ' ' && key != 32); // pętla trwa do wciniecia klawisza X na gamepadzie
  
  pkt=koniec_gry(okno_gra,&waz,ustawienia);
- pobierz_klawisz(okno_gra); // Odczyta "A" (127) lub Enter
+ nodelay(okno_gra, FALSE);
+ int k;
+ do
+ {
+  k = pobierz_klawisz(okno_gra);
+ } 
+ while(k != '\n' && k != ' ' && k != 32);
  sprawdz_punkty (pkt,ustawienia);
  
  // zwalnianie pamieci weza
@@ -951,7 +957,7 @@ int przesun_weza(snake ** waz ,snake ** los ,char kierunek, konf ** ustawienia)
 
 int koniec_gry(WINDOW * okno_gra, snake ** waz, konf ** ustawienia)
 {
- int ilosc=0;
+int ilosc=0;
  float pkt;
  while((*waz)->head!=NULL)
   (*waz)=(*waz)->head;
@@ -964,10 +970,10 @@ int koniec_gry(WINDOW * okno_gra, snake ** waz, konf ** ustawienia)
  init_pair(1,COLOR_RED,COLOR_BLACK);
  wattrset(okno_gra,COLOR_PAIR(1));
  wattron(okno_gra,A_BOLD);
- mvwprintw(okno_gra,((*ustawienia)->wysokosc/2)-2,((*ustawienia)->szerokosc-10)/2,"KONIEC GRY");
- mvwprintw(okno_gra,((*ustawienia)->wysokosc/2),((*ustawienia)->szerokosc-11)/2,"długość: %3d",ilosc);
+ mvwprintw(okno_gra,((*ustawienia)->wysokosc/2)-3,((*ustawienia)->szerokosc-10)/2,"KONIEC GRY");
+ mvwprintw(okno_gra,((*ustawienia)->wysokosc/2)-1,((*ustawienia)->szerokosc-11)/2,"długość: %3d",ilosc);
  pkt=(500.0*(float)(*ustawienia)->szybkosc/(float)((*ustawienia)->wysokosc*(*ustawienia)->szerokosc))*(float)ilosc;
- mvwprintw(okno_gra,((*ustawienia)->wysokosc/2)+2,((*ustawienia)->szerokosc-11)/2,"punkty: %4d",(int)pkt);
+ mvwprintw(okno_gra,((*ustawienia)->wysokosc/2)+1,((*ustawienia)->szerokosc-11)/2,"punkty: %4d",(int)pkt);
  wmove(okno_gra,(*ustawienia)->wysokosc-1,0);
  wrefresh(okno_gra);
  return (int)pkt;
@@ -1002,17 +1008,27 @@ void rysuj_los (WINDOW * okno_gra, snake ** los, konf ** ustawienia)
 void sprawdz_punkt (snake **waz, snake ** los, konf ** ustawienia)
 {
  // funkcja sprawdza czy element nie został wylosowany na wężu
- while((*waz)->head!=NULL)
-  (*waz)=(*waz)->head;
-
- while((*waz)->tail!=NULL)
+ bool kolizja;
+ do
  {
-  if((*waz)->x == (*los)->x && (*waz)->y == (*los)->y)
+  kolizja = false;
+  // Przejdź do głowy węża
+  snake * tmp = *waz;
+  while (tmp->head != NULL)
+   tmp = tmp->head;
+  // Przeszukaj całe ciało węża (od głowy po sam koniec ogona)
+  while (tmp != NULL)
   {
-   generuj_los (los, ustawienia);
+   if (tmp->x == (*los)->x && tmp->y == (*los)->y)
+   {
+    kolizja = true;
+    generuj_los(los, ustawienia); // Wygeneruj nowy punkt i sprawdź od nowa
+    break;
+   }
+   tmp = tmp->tail;
   }
-  *waz=(*waz)->tail;
  }
+ while (kolizja);
 }
 
 //----------------------------------------------------------------------
