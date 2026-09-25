@@ -122,11 +122,14 @@ int pobierz_klawisz(WINDOW* okno, bool czy_dzwiek = false)
 int main()
 {
  setlocale(LC_ALL, "");
+ initscr(); //inicjalizacja ekranu
+ start_color();   //włączenie trybu koloroweg
+ noecho(); //wyłączenie echa na ekran
+ keypad(stdscr,TRUE); //support do klawiszy funkcyjnych
+ getmaxyx(stdscr,wiersze,kolumny);
  konf * ustawienia;
  ustawienia = new konf;
  wczytaj_ustawienia(&ustawienia);
- initscr(); //inicjalizacja ekranu
- getmaxyx(stdscr,wiersze,kolumny);
 
  if(kolumny < MIN_SZER || wiersze < MIN_WYS)
  {
@@ -135,9 +138,6 @@ int main()
   return 0;
  }
 
- start_color();   //włączenie trybu koloroweg
- noecho(); //wyłączenie echa na ekran
- keypad(stdscr,TRUE); //support do klawiszy funkcyjnych
  menu (&ustawienia);
  endwin(); //zakonczenie pracy w trybie ncurses
  delete ustawienia;
@@ -223,44 +223,55 @@ void wczytaj_ustawienia(konf ** ustawienia)
 {
 // funkcja wczytuje ustawienia gry z pliku
  FILE * plik;
- char temp[30],liczba[5][5];
- int i,j,k;
- if ( (plik=fopen("ustawienia","r")) == NULL)
+ char temp[100];
+ char liczba[6][10]; // Tablica na 6 linii, po max 10 znaków
+ int i, j, k;
+
+ if ((plik = fopen("ustawienia", "r")) == NULL)
  {
-// jesli brak pliku z ustawieniami - tworzony jest nowy defaultowy plik
-  system("touch ustawienia");
-  plik = fopen("ustawienia","w");
-  fseek(plik,SEEK_SET,0);
-  fprintf(plik,"8\n3\n2\n0\n");
-  fclose(plik);
-  menu(ustawienia);
- }
- else
- {
-  fseek(plik,SEEK_SET,0);
-  fread(temp,20,1,plik);
-  for(i=0,k=0;k!=4;i++) // 4 to ilosc linii z tekstem w pliku
-  {
-   if( temp[i]=='\n')
-    k++;
+  // Jeśli brak pliku - tworzymy plik z domyślnymi 6 liniami
+  plik = fopen("ustawienia", "w");
+  if (plik != NULL) {
+   fprintf(plik, "8\n3\n2\n0\n%d\n%d\n", MIN_WYS, MIN_SZER);
+   fclose(plik);
   }
-  temp[i]=0;
+  // Domyślne wartości bezpośrednio do struktury:
+  (*ustawienia)->szybkosc   = 6;
+  (*ustawienia)->kolor_weza = 3;
+  (*ustawienia)->kolor_elem = 2;
+  (*ustawienia)->kolor_tla  = COLOR_BLACK;
+  (*ustawienia)->wysokosc   = MIN_WYS;
+  (*ustawienia)->szerokosc  = MIN_SZER;
+  (*ustawienia)->symb_elem  = '*';
+  return;
  }
- for(i=0,j=0;i<3;i++) // 3 to ilosc liczb w pliku
- {
-  for(k=0;temp[j]!='\n';k++,j++)
-   liczba[i][k]=temp[j];
-  liczba[i][k]=0;
-  j++;
- }
- (*ustawienia)->szybkosc=(atoi(liczba[0])%11);
- (*ustawienia)->kolor_weza=(atoi(liczba[1])%8);
- (*ustawienia)->kolor_elem=(atoi(liczba[2])%8);
- (*ustawienia)->kolor_tla=COLOR_BLACK;
- (*ustawienia)->szerokosc=MIN_SZER;
- (*ustawienia)->wysokosc=MIN_WYS;
- (*ustawienia)->symb_elem='*';
+
+ // Wczytujemy zawartość pliku
+ size_t bytesRead = fread(temp, 1, sizeof(temp) - 1, plik);
+ temp[bytesRead] = '\0';
  fclose(plik);
+
+ // Dzielimy bufor `temp` na 6 linii w tablicy `liczba`
+ for (i = 0, j = 0; i < 6; i++)
+ {
+  for (k = 0; temp[j] != '\n' && temp[j] != '\0' && k < 9; k++, j++)
+  {
+   liczba[i][k] = temp[j];
+  }
+  liczba[i][k] = '\0';
+  if (temp[j] == '\n') j++;
+ }
+
+ // Przypisanie do konfiguracji
+ (*ustawienia)->szybkosc    = (atoi(liczba[0]) % 11);
+ (*ustawienia)->kolor_weza  = (atoi(liczba[1]) % 8);
+ (*ustawienia)->kolor_elem  = (atoi(liczba[2]) % 8);
+ (*ustawienia)->kolor_tla   = COLOR_BLACK;
+ int wys = atoi(liczba[4]);
+ int szer = atoi(liczba[5]);
+ (*ustawienia)->wysokosc   = (wys < MIN_WYS) ? MIN_WYS : wys;
+ (*ustawienia)->szerokosc  = (szer < MIN_SZER) ? MIN_SZER : szer;
+ (*ustawienia)->symb_elem  = '*';
 }
 
 //----------------------------------------------------------------------
@@ -677,22 +688,27 @@ void zmien_okno_gry (konf **ustawienia)
 
 void zapis_ustawien (konf **ustawienia)
 {
-FILE * plik = fopen("ustawienia","w");
+ FILE * plik = fopen("ustawienia","w");
  WINDOW * okno_zapis;
  char znak;
  okno_zapis=newwin(0, 0, 0, 0);
  wielkosc_okna(&okno_zapis);
  logo_snake (&okno_zapis,ustawienia);
  mvwprintw(okno_zapis,Y-2,X+2,"Ustawienia :");
- fseek(plik,SEEK_SET,0);
- fprintf(plik,"%d\n%d\n%d\n%d\n",(*ustawienia)->szybkosc,(*ustawienia)->kolor_weza,(*ustawienia)->kolor_elem,(*ustawienia)->kolor_tla);
- fclose(plik);
-
- mvwprintw(okno_zapis,Y,X,"** Zapis ustawien **");
- if(plik != NULL)
+ if (plik != NULL)
+ {
+  fseek(plik,SEEK_SET,0);
+  // Linia 1: szybkosc, 2: kolor_weza, 3: kolor_elem, 4: kolor_tla, 5: wysokosc, 6: szerokosc
+  fprintf(plik,"%d\n%d\n%d\n%d\n%d\n%d\n",(*ustawienia)->szybkosc,(*ustawienia)->kolor_weza,(*ustawienia)->kolor_elem,(*ustawienia)->kolor_tla,(*ustawienia)->wysokosc,(*ustawienia)->szerokosc);
+  fclose(plik);
+  mvwprintw(okno_zapis,Y,X,"** Zapis ustawien **");
   mvwprintw(okno_zapis,Y+2,X,"Ustawienia zapisane !");
+ }
  else
+ {
+  mvwprintw(okno_zapis,Y,X,"** Zapis ustawien **");
   mvwprintw(okno_zapis,Y+2,X,"Blad podczas zapisu !");
+ }
  wmove(okno_zapis,wiersze-1,0);
  wrefresh(okno_zapis);
  do
