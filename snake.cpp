@@ -64,6 +64,7 @@ int przesun_weza(snake ** waz ,snake ** los ,char kierunek, konf ** ustawienia);
 int koniec_gry(WINDOW * okno_gra, snake ** waz, konf ** ustawienia);
 void generuj_los (snake ** los, konf ** ustawienia);
 void rysuj_los (WINDOW * okno_gra, snake ** los, konf ** ustawienia);
+void rysuj_pasek_gorny(WINDOW * okno_pasek, snake ** waz, konf ** ustawienia);
 void sprawdz_punkt (snake **waz, snake ** los, konf ** ustawienia);
 int sprawdz_los (snake ** waz, snake ** los, konf ** ustawienia);
 
@@ -757,24 +758,31 @@ void zapis_ustawien (konf **ustawienia)
 
 void gra (konf ** ustawienia)
 {
- WINDOW * okno_gra ;
+ WINDOW * okno_gra;
+ WINDOW * okno_pasek;
  int key = ERR, pkt, x, y;
  char kierunek='p';
  snake * waz=NULL, * los=NULL;
  getmaxyx(stdscr,wiersze,kolumny);
+ okno_pasek = newwin(1, kolumny, 0, 0);
  
- if( (*ustawienia)->wysokosc > wiersze)
-  (*ustawienia)->wysokosc = wiersze;
+if( (*ustawienia)->wysokosc > wiersze - 1)
+  (*ustawienia)->wysokosc = wiersze - 1;
  if( (*ustawienia)->szerokosc > kolumny)
   (*ustawienia)->szerokosc = kolumny;
- if( (*ustawienia)->wysokosc==0 || (wiersze-(*ustawienia)->wysokosc)<2)
-  y=0;
+
+ // Wyśrodkowanie okna gry w pionie
+ if( (*ustawienia)->wysokosc == 0 || (wiersze - (*ustawienia)->wysokosc) < 2)
+  y = 1; 
  else
-  y=( wiersze - (*ustawienia)->wysokosc )/2;
- if( (*ustawienia)->szerokosc==0 || (kolumny-(*ustawienia)->szerokosc)<2)
-  x=0;
+ {
+  y = (wiersze - (*ustawienia)->wysokosc) / 2;
+  if (y < 1) y = 1; // Górna granica gry nie może zasłaniać wiersza 0
+ }
+ if( (*ustawienia)->szerokosc == 0 || (kolumny - (*ustawienia)->szerokosc) < 2)
+  x = 0;
  else
-  x=( kolumny - (*ustawienia)->szerokosc )/2;
+  x = (kolumny - (*ustawienia)->szerokosc) / 2;
  
  okno_gra=newwin((*ustawienia)->wysokosc,(*ustawienia)->szerokosc, y, x);
  keypad(okno_gra, TRUE);
@@ -790,6 +798,7 @@ void gra (konf ** ustawienia)
  do
  { 
   werase(okno_gra);
+  rysuj_pasek_gorny(okno_pasek, &waz, ustawienia);
   wattrset(okno_gra, COLOR_PAIR(8));
   box (okno_gra,0,0);
   
@@ -1043,6 +1052,32 @@ void rysuj_los (WINDOW * okno_gra, snake ** los, konf ** ustawienia)
  wattrset(okno_gra,COLOR_PAIR(5));
  wattron(okno_gra,A_BOLD);
  mvwprintw(okno_gra,(*los)->y,(*los)->x,"%c",(*ustawienia)->symb_elem);
+}
+
+//----------------------------------------------------------------------
+
+void rysuj_pasek_gorny(WINDOW * okno_pasek, snake ** waz, konf ** ustawienia)
+{
+ int dlugosc = 0;
+ snake * tmp = *waz;
+ if (tmp == NULL) return;
+ // Policz długość węża
+ while (tmp->head != NULL) tmp = tmp->head;
+ while (tmp->tail != NULL) {
+  dlugosc++;
+  tmp = tmp->tail;
+ }
+ // Oblicz punktację na żywo
+ float mnoznik_scian = ((*ustawienia)->przenikanie) ? 1.0f : 1.5f;
+ float pole_powierzchni = (float)((*ustawienia)->wysokosc * (*ustawienia)->szerokosc);
+ float pkt = (5000.0f * (float)(*ustawienia)->szybkosc / pole_powierzchni) * (float)dlugosc * mnoznik_scian;
+ init_pair(9, COLOR_WHITE, COLOR_BLACK);
+ wattrset(okno_pasek, COLOR_PAIR(9));
+ wattron(okno_pasek, A_BOLD);
+ werase(okno_pasek);
+ // Wyświetlenie punktów w lewym górnym rogu terminala (y=0, x=0)
+ mvwprintw(okno_pasek, 0, 0, " Długość: %-3d   Punkty: %-5d", dlugosc, (int)pkt);
+ wrefresh(okno_pasek);
 }
 
 //----------------------------------------------------------------------
