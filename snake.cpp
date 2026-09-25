@@ -123,6 +123,7 @@ int main()
 {
  setlocale(LC_ALL, "");
  initscr(); //inicjalizacja ekranu
+ curs_set(0); // ukryj kursor
  start_color();   //włączenie trybu koloroweg
  noecho(); //wyłączenie echa na ekran
  keypad(stdscr,TRUE); //support do klawiszy funkcyjnych
@@ -162,7 +163,6 @@ void wielkosc_okna (WINDOW ** okno)
   {
    wrefresh (okno_wielkosc);
    getmaxyx(okno_wielkosc,wiersze,kolumny);
-   wmove(okno_wielkosc,wiersze-1,0);
   }
   while(kolumny < MIN_SZER || wiersze < MIN_WYS);
   delwin(okno_wielkosc);
@@ -307,7 +307,6 @@ void menu (konf ** ustawienia)
     mvwprintw(okno_menu,Y,X,".: Wyjście :.");
     break;
   }
-  wmove(okno_menu,wiersze-1,0);
   
   do
    klawisz=pobierz_klawisz(okno_menu, true);
@@ -364,7 +363,6 @@ void wyniki (konf ** ustawienia)
  for(i=0;i<3;i++)
   mvwprintw(okno_wyniki,Y+i,0,"%10s  %4d",dane[i].osoba,dane[i].rezultat);
 
- wmove(okno_wyniki,wiersze-1,0);
  wrefresh(okno_wyniki);
  do
   znak=pobierz_klawisz(okno_wyniki, true);
@@ -415,12 +413,10 @@ void informacje (konf ** ustawienia)
  {
   mvwprintw(okno_informacje,Y,X+2,"Brak pliku \"informacje\" !");
   wrefresh(okno_informacje);
-  wmove(okno_informacje,wiersze-1,0);
  }
  else
  {
   mvwprintw(okno_informacje,Y,0,"%s",dane);
-  wmove(okno_informacje,wiersze-1,0);
  }
  do
   znak=pobierz_klawisz(okno_informacje, true);
@@ -431,7 +427,6 @@ void informacje (konf ** ustawienia)
  mvwprintw(okno_informacje,Y,X,"SNAKE 1.0 :");
  mvwprintw(okno_informacje,Y+2,X,"Aurox 9.2 Water");
  mvwprintw(okno_informacje,Y+3,X,"Linux 2.4.20-20.9");
- wmove(okno_informacje,wiersze-1,0);
  do
   znak=pobierz_klawisz(okno_informacje, true);
  while(znak != '\n' && znak != ' ' && znak != 32);
@@ -441,7 +436,6 @@ void informacje (konf ** ustawienia)
  mvwprintw(okno_informacje,Y,X,"Autor :");
  mvwprintw(okno_informacje,Y+2,X,"student UZ - Paweł Akonom");
  mvwprintw(okno_informacje,Y+3,X,"akus82@o2.pl");
- wmove(okno_informacje,wiersze-1,0);
  wrefresh(okno_informacje);
  do
   znak=pobierz_klawisz(okno_informacje, true);
@@ -487,7 +481,6 @@ void menu_ustawienia (konf ** ustawienia)
     mvwprintw(okno_menu_ustawienia,Y,X,".: Wyjście do menu :. ");
     break;
   }
-  wmove(okno_menu_ustawienia,wiersze-1,0);
   
   do
    klawisz=pobierz_klawisz(okno_menu_ustawienia, true);
@@ -544,7 +537,6 @@ void zmien_szybkosc(konf ** ustawienia)
   mvwprintw(okno_szybkosc,Y-2,X+2,"Ustawienia :");
   mvwprintw(okno_szybkosc,Y,X,"** Wybierz prędkość **");
   mvwprintw(okno_szybkosc,Y+2,X+10,"%2d",(*ustawienia)->szybkosc);
-  wmove(okno_szybkosc,wiersze-1,0);
   wrefresh(okno_szybkosc);
   klawisz=pobierz_klawisz(okno_szybkosc, true);
   switch (klawisz)
@@ -583,7 +575,6 @@ void zmien_kolor_weza(konf ** ustawienia)
   wattrset(okno_kolor_weza, COLOR_PAIR(2));
   wattron(okno_kolor_weza,A_BOLD);
   mvwprintw(okno_kolor_weza,Y+2,X+9,"%c%c%c%c%c",symb,symb,symb,symb,symb);
-  wmove(okno_kolor_weza,wiersze-1,0);
   wrefresh(okno_kolor_weza);
   klawisz=pobierz_klawisz(okno_kolor_weza, true);
   switch (klawisz)
@@ -621,7 +612,6 @@ void zmien_kolor_elem(konf ** ustawienia)
   wattrset(okno_kolor_elem, COLOR_PAIR(2));
   wattron(okno_kolor_elem,A_BOLD);
   mvwprintw(okno_kolor_elem,Y+2,X+13,"%c",(*ustawienia)->symb_elem);
-  wmove(okno_kolor_elem,wiersze-1,0);
   wrefresh(okno_kolor_elem);
   klawisz=pobierz_klawisz(okno_kolor_elem, true);
   switch (klawisz)
@@ -709,7 +699,6 @@ void zapis_ustawien (konf **ustawienia)
   mvwprintw(okno_zapis,Y,X,"** Zapis ustawien **");
   mvwprintw(okno_zapis,Y+2,X,"Blad podczas zapisu !");
  }
- wmove(okno_zapis,wiersze-1,0);
  wrefresh(okno_zapis);
  do
   znak=pobierz_klawisz(okno_zapis, true);
@@ -862,8 +851,6 @@ void rysuj_weza(WINDOW * okno_gra, snake **waz, konf ** ustawienia)
   }
   tmpx = tmpx->tail;
  }
- // Bezpieczny ruch kursora na dół okna
- wmove(okno_gra, (*ustawienia)->wysokosc - 1, 0);
 }
 
 //----------------------------------------------------------------------
@@ -970,7 +957,6 @@ int koniec_gry(WINDOW * okno_gra, snake ** waz, konf ** ustawienia)
  mvwprintw(okno_gra,((*ustawienia)->wysokosc/2)-1,((*ustawienia)->szerokosc-11)/2,"długość: %3d",ilosc);
  pkt=(500.0*(float)(*ustawienia)->szybkosc/(float)((*ustawienia)->wysokosc*(*ustawienia)->szerokosc))*(float)ilosc;
  mvwprintw(okno_gra,((*ustawienia)->wysokosc/2)+1,((*ustawienia)->szerokosc-11)/2,"punkty: %4d",(int)pkt);
- wmove(okno_gra,(*ustawienia)->wysokosc-1,0);
  wrefresh(okno_gra);
  return (int)pkt;
 }
@@ -998,7 +984,6 @@ void rysuj_los (WINDOW * okno_gra, snake ** los, konf ** ustawienia)
  wattrset(okno_gra,COLOR_PAIR(5));
  wattron(okno_gra,A_BOLD);
  mvwprintw(okno_gra,(*los)->y,(*los)->x,"%c",(*ustawienia)->symb_elem);
- wmove(okno_gra,wiersze-1,0);
 }
 
 //----------------------------------------------------------------------
@@ -1157,7 +1142,6 @@ void zmien_rekord (int pkt,int nr,noty * dane, konf ** ustawienia)
  }
  mvwprintw(okno_wpis,Y,X,"Nowy rekord, %d miejsce:",nr+1);
  mvwprintw(okno_wpis, Y + 2, X, "Twój wąż to %s", nazwa_weza);
- wmove(okno_wpis, wiersze - 1, 0);
  wrefresh(okno_wpis);
  // Czekamy na zatwierdzenie przyciskiem A / Enter / D-Pad
  pobierz_klawisz(okno_wpis, true);
