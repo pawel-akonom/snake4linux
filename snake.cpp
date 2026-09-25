@@ -11,7 +11,8 @@ int kolumny,wiersze;
 
 struct konf
 {
- int szybkosc,kolor_weza,kolor_elem,kolor_tla;
+ int szybkosc,kolor_weza,kolor_elem;
+ bool przenikanie;
  int wysokosc,szerokosc;
  char symb_elem;
 };
@@ -50,6 +51,7 @@ void zmien_szybkosc(konf ** ustawienia);
 void zmien_kolor_weza(konf ** ustawienia);
 void zmien_kolor_elem(konf ** ustawienia);
 void zmien_okno_gry (konf **ustawienia);
+void zmien_przenikanie(konf **ustawienia);
 void zapis_ustawien (konf **ustawienia);
 
 //----------------------------------------------------------------------
@@ -124,7 +126,7 @@ int main()
  setlocale(LC_ALL, "");
  initscr(); //inicjalizacja ekranu
  curs_set(0); // ukryj kursor
- start_color();   //włączenie trybu koloroweg
+ start_color();   //włączenie trybu kolorowego
  noecho(); //wyłączenie echa na ekran
  keypad(stdscr,TRUE); //support do klawiszy funkcyjnych
  getmaxyx(stdscr,wiersze,kolumny);
@@ -136,6 +138,7 @@ int main()
  {
   endwin();
   system("echo Za małe okno!");
+  delete ustawienia;
   return 0;
  }
 
@@ -232,14 +235,14 @@ void wczytaj_ustawienia(konf ** ustawienia)
   // Jeśli brak pliku - tworzymy plik z domyślnymi 6 liniami
   plik = fopen("ustawienia", "w");
   if (plik != NULL) {
-   fprintf(plik, "8\n3\n2\n0\n%d\n%d\n", MIN_WYS, MIN_SZER);
+   fprintf(plik, "6\n2\n3\n1\n%d\n%d\n", MIN_WYS, MIN_SZER);
    fclose(plik);
   }
   // Domyślne wartości bezpośrednio do struktury:
   (*ustawienia)->szybkosc   = 6;
-  (*ustawienia)->kolor_weza = 3;
-  (*ustawienia)->kolor_elem = 2;
-  (*ustawienia)->kolor_tla  = COLOR_BLACK;
+  (*ustawienia)->kolor_weza = 2;
+  (*ustawienia)->kolor_elem = 3;
+  (*ustawienia)->przenikanie = true;
   (*ustawienia)->wysokosc   = MIN_WYS;
   (*ustawienia)->szerokosc  = MIN_SZER;
   (*ustawienia)->symb_elem  = '*';
@@ -266,7 +269,8 @@ void wczytaj_ustawienia(konf ** ustawienia)
  (*ustawienia)->szybkosc    = (atoi(liczba[0]) % 11);
  (*ustawienia)->kolor_weza  = (atoi(liczba[1]) % 8);
  (*ustawienia)->kolor_elem  = (atoi(liczba[2]) % 8);
- (*ustawienia)->kolor_tla   = COLOR_BLACK;
+ (*ustawienia)->przenikanie = (atoi(liczba[3]) != 0); // 1 -> true, 0 -> false
+
  int wys = atoi(liczba[4]);
  int szer = atoi(liczba[5]);
  (*ustawienia)->wysokosc   = (wys < MIN_WYS) ? MIN_WYS : wys;
@@ -382,7 +386,7 @@ int wczytaj_informacje (char * dane)
  else
  {
   fseek(plik,SEEK_SET,0);
-  fread(dane,500,1,plik);
+  fread(dane,600,1,plik);
   fclose(plik);
   for(i=0;dane[i]!='\n';i++);
   dane[i]='\0';
@@ -453,7 +457,7 @@ void menu_ustawienia (konf ** ustawienia)
  noecho();
  okno_menu_ustawienia=newwin(0, 0, 0, 0);
  keypad(okno_menu_ustawienia,TRUE);
- init_pair(1,(*ustawienia)->kolor_weza,(*ustawienia)->kolor_tla);
+ init_pair(1,(*ustawienia)->kolor_weza,COLOR_BLACK);
  wybor=0;
  do
  { 
@@ -475,9 +479,12 @@ void menu_ustawienia (konf ** ustawienia)
     mvwprintw(okno_menu_ustawienia,Y,X,".: Wielkość okna :. ");
     break;
    case 4:
-    mvwprintw(okno_menu_ustawienia,Y,X,".: Zapis ustawień :. ");
+    mvwprintw(okno_menu_ustawienia,Y,X,".: Przenikanie :. ");
     break;
    case 5:
+    mvwprintw(okno_menu_ustawienia,Y,X,".: Zapis ustawień :. ");
+    break;
+   case 6:
     mvwprintw(okno_menu_ustawienia,Y,X,".: Wyjście do menu :. ");
     break;
   }
@@ -507,15 +514,19 @@ void menu_ustawienia (konf ** ustawienia)
      menu_ustawienia(ustawienia);
      break;
     case 4:
-     zapis_ustawien(ustawienia);
+     zmien_przenikanie(ustawienia);
      menu_ustawienia(ustawienia);
      break;
     case 5:
+     zapis_ustawien(ustawienia);
+     menu_ustawienia(ustawienia);
+     break;
+    case 6:
      break;
    }
   }
   else
-   wybor=zmien_napis(klawisz,wybor,6);
+   wybor=zmien_napis(klawisz,wybor,7);
  }
  while(klawisz != '\n');
  delwin(okno_menu_ustawienia);
@@ -535,7 +546,7 @@ void zmien_szybkosc(konf ** ustawienia)
   wielkosc_okna(&okno_szybkosc);
   logo_snake (&okno_szybkosc,ustawienia);
   mvwprintw(okno_szybkosc,Y-2,X+2,"Ustawienia :");
-  mvwprintw(okno_szybkosc,Y,X,"** Wybierz prędkość **");
+  mvwprintw(okno_szybkosc,Y,X,"** Ustaw prędkość **");
   mvwprintw(okno_szybkosc,Y+2,X+10,"%2d",(*ustawienia)->szybkosc);
   wrefresh(okno_szybkosc);
   klawisz=pobierz_klawisz(okno_szybkosc, true);
@@ -570,7 +581,7 @@ void zmien_kolor_weza(konf ** ustawienia)
   wielkosc_okna(&okno_kolor_weza);
   logo_snake (&okno_kolor_weza,ustawienia);
   mvwprintw(okno_kolor_weza,Y-2,X+2,"Ustawienia :");
-  mvwprintw(okno_kolor_weza,Y,X,"** Wybierz kolor węża **");
+  mvwprintw(okno_kolor_weza,Y,X,"** Ustaw kolor węża **");
   init_pair(2,(*ustawienia)->kolor_weza,COLOR_BLACK);
   wattrset(okno_kolor_weza, COLOR_PAIR(2));
   wattron(okno_kolor_weza,A_BOLD);
@@ -607,7 +618,7 @@ void zmien_kolor_elem(konf ** ustawienia)
   wielkosc_okna(&okno_kolor_elem);
   logo_snake (&okno_kolor_elem,ustawienia);
   mvwprintw(okno_kolor_elem,Y-2,X+2,"Ustawienia :");
-  mvwprintw(okno_kolor_elem,Y,X,"** Wybierz kolor elementu **");
+  mvwprintw(okno_kolor_elem,Y,X,"** Ustaw kolor elementu **");
   init_pair(2,(*ustawienia)->kolor_elem,COLOR_BLACK);
   wattrset(okno_kolor_elem, COLOR_PAIR(2));
   wattron(okno_kolor_elem,A_BOLD);
@@ -639,13 +650,13 @@ void zmien_okno_gry (konf **ustawienia)
  noecho();
  okno=newwin(0, 0, 0, 0);
  keypad(okno,TRUE);
- init_pair(2,(*ustawienia)->kolor_tla,(*ustawienia)->kolor_tla);
+ init_pair(2,COLOR_BLACK,COLOR_BLACK);
  do
  {
   wielkosc_okna(&okno);
   logo_snake (&okno,ustawienia);
   mvwprintw(okno,Y-2,X+2,"Ustawienia :");
-  mvwprintw(okno,Y,X,"** Wybierz wielkość okna **");
+  mvwprintw(okno,Y,X,"** Ustaw wielkość okna **");
   mvwprintw(okno,Y+2,X+9,"%3d * %2d",(*ustawienia)->szerokosc,(*ustawienia)->wysokosc);
   wmove(okno,wiersze-1,0);
   wrefresh(okno);
@@ -676,6 +687,41 @@ void zmien_okno_gry (konf **ustawienia)
 
 //----------------------------------------------------------------------
 
+void zmien_przenikanie(konf ** ustawienia)
+{
+ int klawisz;
+ WINDOW * okno_przenikanie;
+ noecho();
+ okno_przenikanie=newwin(0, 0, 0, 0);
+ keypad(okno_przenikanie,TRUE);
+ do
+ {
+  wielkosc_okna(&okno_przenikanie);
+  logo_snake (&okno_przenikanie,ustawienia);
+  mvwprintw(okno_przenikanie,Y-2,X+2,"Ustawienia :");
+  mvwprintw(okno_przenikanie,Y,X,"** Ustaw przez ściany **");
+  
+  if ((*ustawienia)->przenikanie)
+   mvwprintw(okno_przenikanie,Y+2,X+10,"tak");
+  else
+   mvwprintw(okno_przenikanie,Y+2,X+10,"nie");
+   
+  wrefresh(okno_przenikanie);
+  klawisz=pobierz_klawisz(okno_przenikanie, true);
+  switch (klawisz)
+  {
+   case KEY_LEFT:
+   case KEY_RIGHT:
+    (*ustawienia)->przenikanie = !((*ustawienia)->przenikanie);
+    break;
+  }
+ }
+ while (klawisz!='\n');
+ delwin(okno_przenikanie);
+}
+
+//----------------------------------------------------------------------
+
 void zapis_ustawien (konf **ustawienia)
 {
  FILE * plik = fopen("ustawienia","w");
@@ -688,8 +734,8 @@ void zapis_ustawien (konf **ustawienia)
  if (plik != NULL)
  {
   fseek(plik,SEEK_SET,0);
-  // Linia 1: szybkosc, 2: kolor_weza, 3: kolor_elem, 4: kolor_tla, 5: wysokosc, 6: szerokosc
-  fprintf(plik,"%d\n%d\n%d\n%d\n%d\n%d\n",(*ustawienia)->szybkosc,(*ustawienia)->kolor_weza,(*ustawienia)->kolor_elem,(*ustawienia)->kolor_tla,(*ustawienia)->wysokosc,(*ustawienia)->szerokosc);
+  // Linia 1: szybkosc, 2: kolor_weza, 3: kolor_elem, 4: przenikanie (1/0), 5: wysokosc, 6: szerokosc
+  fprintf(plik,"%d\n%d\n%d\n%d\n%d\n%d\n", (*ustawienia)->szybkosc, (*ustawienia)->kolor_weza, (*ustawienia)->kolor_elem, (*ustawienia)->przenikanie ? 1 : 0, (*ustawienia)->wysokosc, (*ustawienia)->szerokosc);
   fclose(plik);
   mvwprintw(okno_zapis,Y,X,"** Zapis ustawien **");
   mvwprintw(okno_zapis,Y+2,X,"Ustawienia zapisane !");
@@ -825,7 +871,7 @@ void generuj_weza(snake **waz)
 
 void rysuj_weza(WINDOW * okno_gra, snake **waz, konf ** ustawienia)
 {
- init_pair(4,(*ustawienia)->kolor_weza,(*ustawienia)->kolor_tla);
+ init_pair(4,(*ustawienia)->kolor_weza,COLOR_BLACK);
  wattrset(okno_gra,COLOR_PAIR(4)); 	 
  wattron(okno_gra,A_BOLD);
  snake * tmpx = *waz;
@@ -911,16 +957,24 @@ int przesun_weza(snake ** waz ,snake ** los ,char kierunek, konf ** ustawienia)
  int max_x = (*ustawienia)->szerokosc - 2;
  int max_y = (*ustawienia)->wysokosc - 2;
 
- // Przejście przez ściany (teleportacja na drugą stronę wewnątrz ramki)
- if ((*waz)->x < 1)
-  (*waz)->x = max_x;
- else if ((*waz)->x > max_x)
-  (*waz)->x = 1;
+ // OBSŁUGA ŚCIAN I PRZENIKANIA
+ if ((*ustawienia)->przenikanie)
+ {
+  // Przenikanie włączone: teleportacja
+  if ((*waz)->x < 1) (*waz)->x = max_x;
+  else if ((*waz)->x > max_x) (*waz)->x = 1;
 
- if ((*waz)->y < 1)
-  (*waz)->y = max_y;
- else if ((*waz)->y > max_y)
-  (*waz)->y = 1;
+  if ((*waz)->y < 1) (*waz)->y = max_y;
+  else if ((*waz)->y > max_y) (*waz)->y = 1;
+ }
+ else
+ {
+  // Przenikanie wyłączone: uderzenie w ścianę kończy grę
+  if ((*waz)->x < 1 || (*waz)->x > max_x || (*waz)->y < 1 || (*waz)->y > max_y)
+  {
+   return 1;
+  }
+ }
  
  if (sprawdz_weza(waz) == 1)
   return 1;
@@ -955,7 +1009,12 @@ int koniec_gry(WINDOW * okno_gra, snake ** waz, konf ** ustawienia)
  wattron(okno_gra,A_BOLD);
  mvwprintw(okno_gra,((*ustawienia)->wysokosc/2)-3,((*ustawienia)->szerokosc-10)/2,"KONIEC GRY");
  mvwprintw(okno_gra,((*ustawienia)->wysokosc/2)-1,((*ustawienia)->szerokosc-11)/2,"długość: %3d",ilosc);
- pkt=(500.0*(float)(*ustawienia)->szybkosc/(float)((*ustawienia)->wysokosc*(*ustawienia)->szerokosc))*(float)ilosc;
+
+ // Mnożnik punktów: x1.5 jeśli przenikanie jest wyłączone, x1 jeśli włączone
+ float mnoznik_scian = ((*ustawienia)->przenikanie) ? 1.0f : 1.5f;
+ float pole_powierzchni = (float)((*ustawienia)->wysokosc * (*ustawienia)->szerokosc);
+ pkt = (5000.0f * (float)(*ustawienia)->szybkosc / pole_powierzchni) * (float)ilosc * mnoznik_scian;
+
  mvwprintw(okno_gra,((*ustawienia)->wysokosc/2)+1,((*ustawienia)->szerokosc-11)/2,"punkty: %4d",(int)pkt);
  wrefresh(okno_gra);
  return (int)pkt;
@@ -980,7 +1039,7 @@ void generuj_los (snake ** los, konf ** ustawienia)
 void rysuj_los (WINDOW * okno_gra, snake ** los, konf ** ustawienia)
 {
 // funkcja rysuje element w oknie gry
- init_pair(5,(*ustawienia)->kolor_elem,(*ustawienia)->kolor_tla);
+ init_pair(5,(*ustawienia)->kolor_elem,COLOR_BLACK);
  wattrset(okno_gra,COLOR_PAIR(5));
  wattron(okno_gra,A_BOLD);
  mvwprintw(okno_gra,(*los)->y,(*los)->x,"%c",(*ustawienia)->symb_elem);
