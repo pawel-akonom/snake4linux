@@ -13,7 +13,7 @@ struct konf
 {
  int szybkosc,kolor_weza,kolor_elem,kolor_tla;
  int wysokosc,szerokosc;
- char symb_waz,symb_elem;
+ char symb_elem;
 };
 
 struct snake
@@ -49,7 +49,6 @@ void menu_ustawienia (konf ** ustawienia);
 void zmien_szybkosc(konf ** ustawienia);
 void zmien_kolor_weza(konf ** ustawienia);
 void zmien_kolor_elem(konf ** ustawienia);
-void zmien_kolor_tla(konf ** ustawienia);
 void zmien_okno_gry (konf **ustawienia);
 void zapis_ustawien (konf **ustawienia);
 
@@ -220,7 +219,7 @@ void wczytaj_ustawienia(konf ** ustawienia)
   system("touch ustawienia");
   plik = fopen("ustawienia","w");
   fseek(plik,SEEK_SET,0);
-  fprintf(plik,"8\n3\n2\n0\n*\n*\n");
+  fprintf(plik,"8\n3\n2\n0\n");
   fclose(plik);
   menu(ustawienia);
  }
@@ -228,14 +227,14 @@ void wczytaj_ustawienia(konf ** ustawienia)
  {
   fseek(plik,SEEK_SET,0);
   fread(temp,20,1,plik);
-  for(i=0,k=0;k!=6;i++) // 6 to ilość linii z tekstem w pliku
+  for(i=0,k=0;k!=4;i++) // 4 to ilosc linii z tekstem w pliku
   {
    if( temp[i]=='\n')
     k++;
   }
   temp[i]=0;
  }
- for(i=0,j=0;i<4;i++) // 4 to ilość liczb w pliku
+ for(i=0,j=0;i<3;i++) // 3 to ilosc liczb w pliku
  {
   for(k=0;temp[j]!='\n';k++,j++)
    liczba[i][k]=temp[j];
@@ -245,13 +244,10 @@ void wczytaj_ustawienia(konf ** ustawienia)
  (*ustawienia)->szybkosc=(atoi(liczba[0])%11);
  (*ustawienia)->kolor_weza=(atoi(liczba[1])%8);
  (*ustawienia)->kolor_elem=(atoi(liczba[2])%8);
- (*ustawienia)->kolor_tla=(atoi(liczba[3])%8);
+ (*ustawienia)->kolor_tla=COLOR_BLACK;
  (*ustawienia)->szerokosc=MIN_SZER;
  (*ustawienia)->wysokosc=MIN_WYS;
- (*ustawienia)->symb_waz=temp[j];
- while(temp[j]!='\n')
-  j++;
- (*ustawienia)->symb_elem=temp[++j];
+ (*ustawienia)->symb_elem='*';
  fclose(plik);
 }
 
@@ -459,15 +455,12 @@ void menu_ustawienia (konf ** ustawienia)
     mvwprintw(okno_menu_ustawienia,Y,X,".: Kolor elementu :. ");
     break;
    case 3:
-    mvwprintw(okno_menu_ustawienia,Y,X,".: Kolor tła :. ");
-    break;
-   case 4:
     mvwprintw(okno_menu_ustawienia,Y,X,".: Wielkość okna :. ");
     break;
-   case 5:
+   case 4:
     mvwprintw(okno_menu_ustawienia,Y,X,".: Zapis ustawień :. ");
     break;
-   case 6:
+   case 5:
     mvwprintw(okno_menu_ustawienia,Y,X,".: Wyjście do menu :. ");
     break;
   }
@@ -494,23 +487,19 @@ void menu_ustawienia (konf ** ustawienia)
      menu_ustawienia(ustawienia);
      break;
     case 3:
-     zmien_kolor_tla(ustawienia);
-     menu_ustawienia(ustawienia);
-     break;
-    case 4:
      zmien_okno_gry(ustawienia);
      menu_ustawienia(ustawienia);
      break;
-    case 5:
+    case 4:
      zapis_ustawien(ustawienia);
      menu_ustawienia(ustawienia);
      break;
-    case 6:
+    case 5:
      break;
    }
   }
   else
-   wybor=zmien_napis(klawisz,wybor,7);
+   wybor=zmien_napis(klawisz,wybor,6);
  }
  while(klawisz != '\n');
  delwin(okno_menu_ustawienia);
@@ -556,7 +545,7 @@ void zmien_szybkosc(konf ** ustawienia)
 void zmien_kolor_weza(konf ** ustawienia)
 {
  int klawisz;
- char symb;
+ char symb = 'o'; // <--- Ustawienie symbolu do podglądu
  WINDOW * okno_kolor_weza;
  noecho();
  okno_kolor_weza=newwin(0, 0, 0, 0);
@@ -570,7 +559,6 @@ void zmien_kolor_weza(konf ** ustawienia)
   init_pair(2,(*ustawienia)->kolor_weza,COLOR_BLACK);
   wattrset(okno_kolor_weza, COLOR_PAIR(2));
   wattron(okno_kolor_weza,A_BOLD);
-  symb=(*ustawienia)->symb_waz;
   mvwprintw(okno_kolor_weza,Y+2,X+9,"%c%c%c%c%c",symb,symb,symb,symb,symb);
   wmove(okno_kolor_weza,wiersze-1,0);
   wrefresh(okno_kolor_weza);
@@ -631,44 +619,6 @@ void zmien_kolor_elem(konf ** ustawienia)
 
 //----------------------------------------------------------------------
 
-void zmien_kolor_tla(konf ** ustawienia)
-{
- int klawisz;
- WINDOW * okno_kolor_tla;
- noecho();
- okno_kolor_tla=newwin(0, 0, 0, 0);
- keypad(okno_kolor_tla,TRUE); //support do klawiszy funkcyjnych
- init_pair(2,(*ustawienia)->kolor_tla,(*ustawienia)->kolor_tla);
- do
- {
-  wielkosc_okna(&okno_kolor_tla);
-  logo_snake (&okno_kolor_tla,ustawienia);
-  mvwprintw(okno_kolor_tla,Y-2,X+2,"Ustawienia :");
-  mvwprintw(okno_kolor_tla,Y,X,"** Wybierz kolor tła **");
-  init_pair(2,(*ustawienia)->kolor_tla,(*ustawienia)->kolor_tla);
-  wattrset(okno_kolor_tla, COLOR_PAIR(2));
-  mvwprintw(okno_kolor_tla,Y+2,X+9,"     ");
-  wmove(okno_kolor_tla,wiersze-1,0);
-  wrefresh(okno_kolor_tla);
-  klawisz=pobierz_klawisz(okno_kolor_tla);
-  switch (klawisz)
-  {
-   case KEY_LEFT:
-    if( (*ustawienia)->kolor_tla > 0 )
-     (*ustawienia)->kolor_tla-=1;
-    break;
-   case KEY_RIGHT:
-    if( (*ustawienia)->kolor_tla < 7 )
-     (*ustawienia)->kolor_tla+=1;
-    break;
-  }
- }
- while (klawisz!='\n');
- delwin(okno_kolor_tla);
-}
-
-//----------------------------------------------------------------------
-
 void zmien_okno_gry (konf **ustawienia)
 {
  int klawisz;
@@ -715,7 +665,7 @@ void zmien_okno_gry (konf **ustawienia)
 
 void zapis_ustawien (konf **ustawienia)
 {
- FILE * plik = fopen("ustawienia","w");
+FILE * plik = fopen("ustawienia","w");
  WINDOW * okno_zapis;
  char znak;
  okno_zapis=newwin(0, 0, 0, 0);
@@ -723,7 +673,7 @@ void zapis_ustawien (konf **ustawienia)
  logo_snake (&okno_zapis,ustawienia);
  mvwprintw(okno_zapis,Y-2,X+2,"Ustawienia :");
  fseek(plik,SEEK_SET,0);
- fprintf(plik,"%d\n%d\n%d\n%d\n%c\n%c\n",(*ustawienia)->szybkosc,(*ustawienia)->kolor_weza,(*ustawienia)->kolor_elem,(*ustawienia)->kolor_tla,(*ustawienia)->symb_waz,(*ustawienia)->symb_elem);
+ fprintf(plik,"%d\n%d\n%d\n%d\n",(*ustawienia)->szybkosc,(*ustawienia)->kolor_weza,(*ustawienia)->kolor_elem,(*ustawienia)->kolor_tla);
  fclose(plik);
 
  mvwprintw(okno_zapis,Y,X,"** Zapis ustawien **");
