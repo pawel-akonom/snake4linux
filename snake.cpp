@@ -30,7 +30,7 @@ struct noty
 
 //----------------------------------------------------------------------
 // Pobieranie klawiszy (D-Pad / ESC)
-int pobierz_klawisz(WINDOW* okno);
+int pobierz_klawisz(WINDOW* okno, bool czy_dzwiek);
 
 //----------------------------------------------------------------------
 // menu
@@ -75,34 +75,46 @@ void zmien_rekord (int pkt,int nr,noty * dane, konf ** ustawienia);
 
 //----------------------------------------------------------------------
 
-int pobierz_klawisz(WINDOW* okno) {
-    int c = (okno != NULL) ? wgetch(okno) : getch();
-    if (c == ERR) {
-        return ERR;
-    }
-    // Zamiana przycisku "A" (kod 127 lub KEY_BACKSPACE) na Enter ('\n')
-    if (c == 127 || c == KEY_BACKSPACE || c == 8)
-    {
-        return '\n';
-    }
-    // Obsługa ESC / D-Pada
-    if (c == 27)
-    {
-        int prev_timeout = is_wintouched(okno) ? 50 : 50; // krótki timeout na sekwencję ESC
-        wtimeout(okno, 50);
-        int c2 = wgetch(okno);
-        if (c2 == '[' || c2 == 91) {
-            int c3 = wgetch(okno);
-            switch (c3) {
-                case 'A': return KEY_UP;
-                case 'B': return KEY_DOWN;
-                case 'C': return KEY_RIGHT;
-                case 'D': return KEY_LEFT;
-            }
-        }
-        return 27;
-    }
-    return c;
+int pobierz_klawisz(WINDOW* okno, bool czy_dzwiek = false)
+{
+ int c = (okno != NULL) ? wgetch(okno) : getch();
+ if (c == ERR)
+ {
+  return ERR;
+ }
+ // Zamiana przycisku "A" (kod 127 lub KEY_BACKSPACE) na Enter ('\n')
+ if (c == 127 || c == KEY_BACKSPACE || c == 8)
+ {
+  return '\n';
+ }
+ // Obsługa ESC / D-Pada
+ if (c == 27)
+ {
+  wtimeout(okno, 50);
+  int c2 = wgetch(okno);
+  if (c2 == '[' || c2 == 91)
+  {
+   int c3 = wgetch(okno);
+   if (czy_dzwiek)
+   {
+    system("aplay -q navigation.wav > /dev/null 2>&1 &");
+   }
+   switch (c3)
+   {
+    case 'A': return KEY_UP;
+    case 'B': return KEY_DOWN;
+    case 'C': return KEY_RIGHT;
+    case 'D': return KEY_LEFT;
+   }
+  }
+  return 27;
+ }
+ // Dźwięk również dla tradycyjnych strzałek z klawiatury
+ if (czy_dzwiek && (c == KEY_UP || c == KEY_DOWN || c == KEY_LEFT || c == KEY_RIGHT))
+ {
+  system("aplay -q navigation.wav > /dev/null 2>&1 &");
+ }
+ return c;
 }
 
 //----------------------------------------------------------------------
@@ -287,7 +299,7 @@ void menu (konf ** ustawienia)
   wmove(okno_menu,wiersze-1,0);
   
   do
-   klawisz=pobierz_klawisz(okno_menu);
+   klawisz=pobierz_klawisz(okno_menu, true);
   while(klawisz != KEY_RIGHT && klawisz != KEY_LEFT && klawisz != '\n');
 
   if(klawisz == '\n')
@@ -344,7 +356,7 @@ void wyniki (konf ** ustawienia)
  wmove(okno_wyniki,wiersze-1,0);
  wrefresh(okno_wyniki);
  do
-  znak=pobierz_klawisz(okno_wyniki);
+  znak=pobierz_klawisz(okno_wyniki, true);
  while(znak != '\n' && znak != ' ' && znak != 32);
  delwin(okno_wyniki);
 }
@@ -400,7 +412,7 @@ void informacje (konf ** ustawienia)
   wmove(okno_informacje,wiersze-1,0);
  }
  do
-  znak=pobierz_klawisz(okno_informacje);
+  znak=pobierz_klawisz(okno_informacje, true);
  while(znak != '\n' && znak != ' ' && znak != 32);
  wielkosc_okna(&okno_informacje); 
  logo_snake(&okno_informacje,ustawienia);
@@ -410,7 +422,7 @@ void informacje (konf ** ustawienia)
  mvwprintw(okno_informacje,Y+3,X,"Linux 2.4.20-20.9");
  wmove(okno_informacje,wiersze-1,0);
  do
-  znak=pobierz_klawisz(okno_informacje);
+  znak=pobierz_klawisz(okno_informacje, true);
  while(znak != '\n' && znak != ' ' && znak != 32);
  wielkosc_okna(&okno_informacje);
  logo_snake(&okno_informacje,ustawienia);
@@ -421,7 +433,7 @@ void informacje (konf ** ustawienia)
  wmove(okno_informacje,wiersze-1,0);
  wrefresh(okno_informacje);
  do
-  znak=pobierz_klawisz(okno_informacje);
+  znak=pobierz_klawisz(okno_informacje, true);
  while(znak != '\n' && znak != ' ' && znak != 32);
  delwin(okno_informacje);
 }
@@ -467,7 +479,7 @@ void menu_ustawienia (konf ** ustawienia)
   wmove(okno_menu_ustawienia,wiersze-1,0);
   
   do
-   klawisz=pobierz_klawisz(okno_menu_ustawienia);
+   klawisz=pobierz_klawisz(okno_menu_ustawienia, true);
   while(klawisz != KEY_RIGHT && klawisz != KEY_LEFT && klawisz != '\n');
 
   if(klawisz == '\n')
@@ -523,7 +535,7 @@ void zmien_szybkosc(konf ** ustawienia)
   mvwprintw(okno_szybkosc,Y+2,X+10,"%2d",(*ustawienia)->szybkosc);
   wmove(okno_szybkosc,wiersze-1,0);
   wrefresh(okno_szybkosc);
-  klawisz=pobierz_klawisz(okno_szybkosc);
+  klawisz=pobierz_klawisz(okno_szybkosc, true);
   switch (klawisz)
   {
    case KEY_LEFT:
@@ -562,7 +574,7 @@ void zmien_kolor_weza(konf ** ustawienia)
   mvwprintw(okno_kolor_weza,Y+2,X+9,"%c%c%c%c%c",symb,symb,symb,symb,symb);
   wmove(okno_kolor_weza,wiersze-1,0);
   wrefresh(okno_kolor_weza);
-  klawisz=pobierz_klawisz(okno_kolor_weza);
+  klawisz=pobierz_klawisz(okno_kolor_weza, true);
   switch (klawisz)
   {
    case KEY_LEFT:
@@ -600,7 +612,7 @@ void zmien_kolor_elem(konf ** ustawienia)
   mvwprintw(okno_kolor_elem,Y+2,X+13,"%c",(*ustawienia)->symb_elem);
   wmove(okno_kolor_elem,wiersze-1,0);
   wrefresh(okno_kolor_elem);
-  klawisz=pobierz_klawisz(okno_kolor_elem);
+  klawisz=pobierz_klawisz(okno_kolor_elem, true);
   switch (klawisz)
   {
    case KEY_LEFT:
@@ -636,7 +648,7 @@ void zmien_okno_gry (konf **ustawienia)
   mvwprintw(okno,Y+2,X+9,"%3d * %2d",(*ustawienia)->szerokosc,(*ustawienia)->wysokosc);
   wmove(okno,wiersze-1,0);
   wrefresh(okno);
-  klawisz=pobierz_klawisz(okno);
+  klawisz=pobierz_klawisz(okno, true);
   switch (klawisz)
   {
    case KEY_LEFT:
@@ -684,7 +696,7 @@ FILE * plik = fopen("ustawienia","w");
  wmove(okno_zapis,wiersze-1,0);
  wrefresh(okno_zapis);
  do
-  znak=pobierz_klawisz(okno_zapis);
+  znak=pobierz_klawisz(okno_zapis, true);
  while(znak != '\n' && znak != ' ' && znak != 32);
  delwin(okno_zapis);
 }
@@ -736,7 +748,7 @@ void gra (konf ** ustawienia)
 
   // Ustawiamy timeout na okno gry
   wtimeout(okno_gra, opoznienie);
-  key = pobierz_klawisz(okno_gra);
+  key = pobierz_klawisz(okno_gra, false);
 
   switch (key)
   {
@@ -765,7 +777,7 @@ void gra (konf ** ustawienia)
  int k;
  do
  {
-  k = pobierz_klawisz(okno_gra);
+  k = pobierz_klawisz(okno_gra, false);
  } 
  while(k != '\n' && k != ' ' && k != 32);
  sprawdz_punkty (pkt,ustawienia);
@@ -926,7 +938,7 @@ int koniec_gry(WINDOW * okno_gra, snake ** waz, konf ** ustawienia)
 {
  int ilosc=0;
  float pkt;
- //system("aplay -q game-over.wav > /dev/null 2>&1 &");
+ system("aplay -q game-over.wav > /dev/null 2>&1 &");
  while((*waz)->head!=NULL)
   (*waz)=(*waz)->head;
  while((*waz)->tail!=NULL)
@@ -951,8 +963,10 @@ int koniec_gry(WINDOW * okno_gra, snake ** waz, konf ** ustawienia)
 
 void generuj_los (snake ** los, konf ** ustawienia)
 {
- delete (*los);
- (*los) = new snake;
+ if (*los == NULL)
+ {
+     *los = new snake;
+ }
  int szer = ((*ustawienia)->szerokosc > 2) ? (*ustawienia)->szerokosc - 2 : 1;
  int wys = ((*ustawienia)->wysokosc > 2) ? (*ustawienia)->wysokosc - 2 : 1;
  (*los)->x = 1 + (rand() % szer);
@@ -1009,7 +1023,7 @@ int sprawdz_los (snake ** waz, snake ** los, konf ** ustawienia)
  
  if((*waz)->x == (*los)->x && (*waz)->y == (*los)->y)
  {
-  //system("aplay -q bite.wav > /dev/null 2>&1 &");
+  system("aplay -q bite.wav > /dev/null 2>&1 &");
   generuj_los(los, ustawienia);
   sprawdz_punkt(waz, los, ustawienia);
   return 1;
@@ -1130,9 +1144,9 @@ void zmien_rekord (int pkt,int nr,noty * dane, konf ** ustawienia)
  wmove(okno_wpis, wiersze - 1, 0);
  wrefresh(okno_wpis);
  // Czekamy na zatwierdzenie przyciskiem A / Enter / D-Pad
- pobierz_klawisz(okno_wpis);
+ pobierz_klawisz(okno_wpis, true);
  // zamiana poprzednich wyników
- for(k = 2; k >= nr; k--)
+ for(k = 2; k > nr; k--)
  {
   dane[k].rezultat = dane[k-1].rezultat;
   sprintf(dane[k].osoba, "%s", dane[k-1].osoba);

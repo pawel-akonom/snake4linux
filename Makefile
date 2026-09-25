@@ -1,5 +1,5 @@
 SCIEZKA_INSTALACJI="$(HOME)/snake"
-SCIAZKA_NCURSES="/usr/include/ncurses"
+SCIAZKA_NCURSES="/usr/include"
 
 sprawdz_ncurses :
 	@if [ ! -f $(SCIAZKA_NCURSES)/ncurses.h ]; then \
@@ -18,7 +18,10 @@ install : snake
 	cp ./snake $(SCIEZKA_INSTALACJI)/
 	cp ./ustawienia $(SCIEZKA_INSTALACJI)/ 2>/dev/null || true
 	cp ./informacje $(SCIEZKA_INSTALACJI)/ 2>/dev/null || true
-	cp ./wyniki $(SCIEZKA)_INSTALACJI/ 2>/dev/null || true
+	cp ./wyniki $(SCIEZKA_INSTALACJI)/ 2>/dev/null || true
+	cp ./bite.wav $(SCIEZKA_INSTALACJI)/ 2>/dev/null || true
+	cp ./navigation.wav $(SCIEZKA_INSTALACJI)/ 2>/dev/null || true
+	cp ./game-over.wav $(SCIEZKA_INSTALACJI)/ 2>/dev/null || true
 	@echo "Gra została pomyślnie zainstalowana w $(SCIEZKA_INSTALACJI)"
 
 uninstall :
@@ -26,6 +29,9 @@ uninstall :
 	$(RM) $(SCIEZKA_INSTALACJI)/ustawienia
 	$(RM) $(SCIEZKA_INSTALACJI)/informacje
 	$(RM) $(SCIEZKA_INSTALACJI)/wyniki
+	$(RM) $(SCIEZKA_INSTALACJI)/bite.wav
+	$(RM) $(SCIEZKA_INSTALACJI)/navigation.wav
+	$(RM) $(SCIEZKA_INSTALACJI)/game-over.wav
 	rmdir $(SCIEZKA_INSTALACJI)
 	@echo "Gra Snake 1.0 odinstalowana"
 
