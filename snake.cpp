@@ -4,6 +4,7 @@
 
 # define Y (int)((float)(wiersze)*0.5)
 # define X (int)((float)(kolumny)*0.1)
+# define ILOSC_WYNIKOW 5
 # define MIN_SZER 32
 # define MIN_WYS 12
 
@@ -355,19 +356,21 @@ void menu (konf ** ustawienia)
 void wyniki (konf ** ustawienia)
 {
 // funkcja wyświetla wyniki
- int i;
+int i;
  char znak;
- noty dane[3];
+ noty dane[ILOSC_WYNIKOW]; // Tablica na 5 wyników
  WINDOW * okno_wyniki;
  noecho();
  okno_wyniki=newwin(0, 0, 0, 0);
  logo_snake(&okno_wyniki,ustawienia);
  mvwprintw(okno_wyniki,Y-2,X+2,"Wyniki :");
-
  wczytaj_wyniki( &(dane[0]) );
- for(i=0;i<3;i++)
-  mvwprintw(okno_wyniki,Y+i,0,"%10s  %4d",dane[i].osoba,dane[i].rezultat);
-
+ // Wyświetlenie 5 wyników
+ for(i = 0; i < ILOSC_WYNIKOW; i++)
+ {
+  mvwprintw(okno_wyniki, Y+i, X+2, "%2d. %s", i+1, dane[i].osoba);
+  mvwprintw(okno_wyniki, Y+i, X+18, "%4d", dane[i].rezultat); // Stała pozycja dla punktów
+ }
  wrefresh(okno_wyniki);
  do
   znak=pobierz_klawisz(okno_wyniki, true);
@@ -1131,9 +1134,10 @@ int sprawdz_los (snake ** waz, snake ** los, konf ** ustawienia)
 
 void generuj_wyniki(void)
 {
-// funkcja generuje defoultowe wyniki w razie braku pliku
+// funkcja generuje domyślne wyniki w razie braku pliku
  FILE * plik = fopen("wyniki","w");
- char temp[]="snake1\n15\nsnake2\n10\nsnake3\n5\n";
+ if (plik == NULL) return;
+ char temp[] = "Pyton\n50\nBoa\n40\nKobra\n30\nZaskroniec\n20\nŻmija\n10\n";
  XOR (temp);
  fprintf(plik,"%s",temp);
  fclose(plik);
@@ -1156,7 +1160,7 @@ void wczytaj_wyniki (noty * dane)
  int i,j,k;
  FILE * plik;
  char temp[50],liczba[5];
-// funkcja wczytuje dane o wynikach do stróktury
+ // funkcja wczytuje dane o wynikach do stróktury
  if ( (plik=fopen("wyniki","r")) == NULL)
  {
   generuj_wyniki();
@@ -1165,28 +1169,30 @@ void wczytaj_wyniki (noty * dane)
  else
  {
   fseek(plik,SEEK_SET,0);
-  fread(temp,50,1,plik);
+  size_t bytes = fread(temp, 1, sizeof(temp) - 1, plik);
+  temp[bytes] = '\0';
   XOR(temp);
-  fclose(plik);
-  for(i=0,k=0;k!=6;i++) // 6 to ilosc linii z tekstem w pliku
+  fclose(plik); 
+  // 10 linii tekstu (5 nazw + 5 wartości)
+  for(i=0, k=0; k!=10 && temp[i]!='\0'; i++)
   {
    if( temp[i]=='\n')
     k++;
   }
   temp[i]=0;
- }
-// wczytywanie danych z pliku do stróktury
- for(i=0,k=0;k<3;k++)
- {
-  for(j=0;temp[i]!='\n';i++,j++)
-   dane[k].osoba[j]=temp[i];
-  dane[k].osoba[j]='\0';
-  i++;
-  for (j=0;temp[i]!='\n';j++,i++)
-   liczba[j]=temp[i];
-  liczba[j]='\0';
-  dane[k].rezultat=atoi(liczba);
-  i++;
+  // wczytywanie 5 rekordów z bufora do struktury
+  for(i=0, k=0; k < ILOSC_WYNIKOW; k++)
+  {
+   for(j=0; temp[i]!='\n' && temp[i]!='\0'; i++, j++)
+    dane[k].osoba[j]=temp[i];
+   dane[k].osoba[j]='\0';
+   if(temp[i]=='\n') i++;
+   for (j=0; temp[i]!='\n' && temp[i]!='\0'; j++, i++)
+    liczba[j]=temp[i];
+   liczba[j]='\0';
+   dane[k].rezultat=atoi(liczba);
+   if(temp[i]=='\n') i++;
+  }
  }
 }
 
@@ -1195,14 +1201,14 @@ void wczytaj_wyniki (noty * dane)
 void sprawdz_punkty (int pkt, konf ** ustawienia)
 {
  int i;
- noty dane[3];
+ noty dane[ILOSC_WYNIKOW];
  wczytaj_wyniki( &(dane[0]) );
-// sprawdzenie rezultatu z dotychczasowymi wynikami
- for(i=0;i<3;i++)
+ // sprawdzenie rezultatu z dotychczasowymi wynikami
+ for(i = 0; i < ILOSC_WYNIKOW; i++)
  {
   if(pkt > dane[i].rezultat)
   {
-   zmien_rekord (pkt,i,&(dane[0]),ustawienia);
+   zmien_rekord (pkt, i, &(dane[0]), ustawienia);
    break;
   }
  }
@@ -1213,7 +1219,7 @@ void sprawdz_punkty (int pkt, konf ** ustawienia)
 void zmien_rekord (int pkt,int nr,noty * dane, konf ** ustawienia)
 {
  int k;
- char temp[50];
+ char temp[256];
  const char* nazwa_weza;
  WINDOW * okno_wpis;
  FILE * plik=fopen("wyniki","w");
@@ -1233,14 +1239,20 @@ void zmien_rekord (int pkt,int nr,noty * dane, konf ** ustawienia)
   default:
    nazwa_weza = "Kobra";
    break;
+  case 3:
+   nazwa_weza = "Zaskroniec";
+   break;
+  case 4:
+   nazwa_weza = "Żmija";
+   break;
  }
  mvwprintw(okno_wpis,Y,X,"Nowy rekord, %d miejsce:",nr+1);
  mvwprintw(okno_wpis, Y + 2, X, "Twój wąż to %s", nazwa_weza);
  wrefresh(okno_wpis);
  // Czekamy na zatwierdzenie przyciskiem A / Enter / D-Pad
  pobierz_klawisz(okno_wpis, true);
- // zamiana poprzednich wyników
- for(k = 2; k > nr; k--)
+// Przesunięcie niższych rekordów w dół (od indeksu 4 do nr)
+ for(k = ILOSC_WYNIKOW - 1; k > nr; k--)
  {
   dane[k].rezultat = dane[k-1].rezultat;
   sprintf(dane[k].osoba, "%s", dane[k-1].osoba);
@@ -1249,7 +1261,7 @@ void zmien_rekord (int pkt,int nr,noty * dane, konf ** ustawienia)
  sprintf(dane[nr].osoba, "%s", nazwa_weza);
  dane[nr].rezultat = pkt;
  getmaxyx(stdscr,wiersze,kolumny); // pobranie ilości kolumn i wierszy
- sprintf(temp,"%s\n%d\n%s\n%d\n%s\n %d\n",dane[0].osoba,dane[0].rezultat,dane[1].osoba,dane[1].rezultat,dane[2].osoba,dane[2].rezultat);
+ sprintf(temp,"%s\n%d\n%s\n%d\n%s\n%d\n%s\n%d\n%s\n%d\n",dane[0].osoba,dane[0].rezultat,dane[1].osoba,dane[1].rezultat,dane[2].osoba,dane[2].rezultat,dane[3].osoba,dane[3].rezultat,dane[4].osoba,dane[4].rezultat);
  XOR(temp);
  fprintf(plik,"%s",temp);
  delwin(okno_wpis);
