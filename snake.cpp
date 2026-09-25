@@ -861,14 +861,31 @@ void rysuj_weza(WINDOW * okno_gra, snake **waz, konf ** ustawienia)
  init_pair(4,(*ustawienia)->kolor_weza,(*ustawienia)->kolor_tla);
  wattrset(okno_gra,COLOR_PAIR(4)); 	 
  wattron(okno_gra,A_BOLD);
- while((*waz)->head!=NULL)
-  (*waz)=(*waz)->head;
- while((*waz)->tail!=NULL)
+ snake * tmpx = *waz;
+ if (tmpx == NULL) return;
+ // Przejdź do głowy
+ while(tmpx->head != NULL)
+  tmpx = tmpx->head;
+ // Rysowanie GŁOWY
+ mvwprintw(okno_gra, tmpx->y, tmpx->x, "O");
+ tmpx = tmpx->tail;
+ // Rysowanie TUŁOWIA i OGONA
+ while(tmpx != NULL)
  {
-  mvwprintw(okno_gra,(*waz)->y,(*waz)->x,"%c",(*ustawienia)->symb_waz);
-  wmove(okno_gra,wiersze,0);
-  (*waz)=(*waz)->tail;
+  if (tmpx->tail == NULL)
+  {
+   // OGON
+   mvwprintw(okno_gra, tmpx->y, tmpx->x, ".");
+  }
+  else
+  {
+   // TUŁÓW
+   mvwprintw(okno_gra, tmpx->y, tmpx->x, "o");
+  }
+  tmpx = tmpx->tail;
  }
+ // Bezpieczny ruch kursora na dół okna
+ wmove(okno_gra, (*ustawienia)->wysokosc - 1, 0);
 }
 
 //----------------------------------------------------------------------
@@ -957,8 +974,9 @@ int przesun_weza(snake ** waz ,snake ** los ,char kierunek, konf ** ustawienia)
 
 int koniec_gry(WINDOW * okno_gra, snake ** waz, konf ** ustawienia)
 {
-int ilosc=0;
+ int ilosc=0;
  float pkt;
+ //system("aplay -q game-over.wav > /dev/null 2>&1 &");
  while((*waz)->head!=NULL)
   (*waz)=(*waz)->head;
  while((*waz)->tail!=NULL)
@@ -1041,6 +1059,7 @@ int sprawdz_los (snake ** waz, snake ** los, konf ** ustawienia)
  
  if((*waz)->x == (*los)->x && (*waz)->y == (*los)->y)
  {
+  //system("aplay -q bite.wav > /dev/null 2>&1 &");
   generuj_los(los, ustawienia);
   sprawdz_punkt(waz, los, ustawienia);
   return 1;
@@ -1146,14 +1165,14 @@ void zmien_rekord (int pkt,int nr,noty * dane, konf ** ustawienia)
  switch (nr)
  {
   case 0:
-   nazwa_weza = "Boa";
+   nazwa_weza = "Pyton";
    break;
   case 1:
-   nazwa_weza = "Kobra";
+   nazwa_weza = "Boa";
    break;
   case 2:
   default:
-   nazwa_weza = "Pyton";
+   nazwa_weza = "Kobra";
    break;
  }
  mvwprintw(okno_wpis,Y,X,"Nowy rekord, %d miejsce:",nr+1);
