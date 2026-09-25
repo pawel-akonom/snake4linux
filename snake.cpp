@@ -795,6 +795,7 @@ if( (*ustawienia)->wysokosc > wiersze - 1)
  if (opoznienie < 30) opoznienie = 30; // Zabezpieczenie przed ujemnym/zbyt małym czasem
 
  init_pair(8,COLOR_WHITE,COLOR_BLACK);
+ init_pair(10, COLOR_RED, COLOR_BLACK);
  generuj_weza(&waz);
  generuj_los(&los, ustawienia);
 
@@ -812,6 +813,29 @@ if( (*ustawienia)->wysokosc > wiersze - 1)
   // Ustawiamy timeout na okno gry
   wtimeout(okno_gra, opoznienie);
   key = pobierz_klawisz(okno_gra, false);
+
+  // OBSŁUGA PAUZY (Klawisz "A" zwraca '\n')
+  if (key == '\n')
+  {
+   // Wypisanie czerwonego napisu PAUZA na środku okna
+   wattrset(okno_gra, COLOR_PAIR(10));
+   wattron(okno_gra, A_BOLD);
+   int srodek_y = (*ustawienia)->wysokosc / 2;
+   int srodek_x = ((*ustawienia)->szerokosc - 5) / 2;
+   mvwprintw(okno_gra, srodek_y, srodek_x, "PAUZA");
+   wrefresh(okno_gra);
+   // Pętla czekająca na ponowne naciśnięcie klawisza "A"
+   nodelay(okno_gra, FALSE); // Czekaj bezlimitowo na klawisz
+   int pauza_key;
+   do
+   {
+    pauza_key = pobierz_klawisz(okno_gra, false);
+   } 
+   while (pauza_key != '\n' && pauza_key != ' ' && pauza_key != 32);
+   // Zresetuj timeout i odśwież widok gry
+   wtimeout(okno_gra, opoznienie);
+   continue; // Przejdź do kolejnej iteracji (omija ruch węża w tym cyklu)
+  }
 
   switch (key)
   {
