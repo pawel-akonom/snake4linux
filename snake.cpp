@@ -38,8 +38,10 @@ int pobierz_klawisz(WINDOW* okno, bool czy_dzwiek);
 
 //----------------------------------------------------------------------
 // menu
+void ekran_startowy(void);
+void odswiez_rozmiar_ekranu(void);
 void wielkosc_okna (WINDOW ** okno);
-void logo_snake (WINDOW ** okno, konf ** ustawienia);
+void logo_snake (WINDOW ** okno);
 int zmien_napis (int klawisz, int wybor ,int max);
 void wczytaj_ustawienia(konf ** ustawienia);
 void menu (konf ** ustawienia);
@@ -87,6 +89,12 @@ int pobierz_klawisz(WINDOW* okno, bool czy_dzwiek = false)
  if (c == ERR)
  {
   return ERR;
+ }
+ // Obsługa automatycznej zmiany rozmiaru terminala w Knulli
+ if (c == KEY_RESIZE)
+ {
+  resize_term(0, 0);
+  return KEY_RESIZE;
  }
  // Zamiana przycisku "A" (kod 127 lub KEY_BACKSPACE) na Enter ('\n')
  if (c == 127 || c == KEY_BACKSPACE || c == 8)
@@ -145,7 +153,8 @@ int main()
   delete ustawienia;
   return 0;
  }
-
+ odswiez_rozmiar_ekranu();
+ ekran_startowy();
  menu (&ustawienia);
  endwin(); //zakonczenie pracy w trybie ncurses
  delete ustawienia;
@@ -153,7 +162,80 @@ int main()
 }
 
 //######################################################################
-// menu
+
+void odswiez_rozmiar_ekranu(void)
+{
+ clear();
+ refresh();
+ getmaxyx(stdscr, wiersze, kolumny);
+}
+
+//----------------------------------------------------------------------
+// ekran startowy
+void ekran_startowy(void)
+{
+ FILE * plik = fopen("snake.txt", "r");
+ if (plik == NULL) return; // Jeśli pliku nie ma, po prostu pomiń ekran startowy
+ char linie[30][100];
+ int ilosc_linii = 0;
+ int max_dlugosc = 0;
+ // Wczytanie pliku linia po linii
+ while (fgets(linie[ilosc_linii], sizeof(linie[ilosc_linii]), plik) != NULL && ilosc_linii < 30)
+ {
+  // Usuń znak nowej linii na końcu
+  size_t len = strlen(linie[ilosc_linii]);
+  if (len > 0 && linie[ilosc_linii][len - 1] == '\n')
+  {
+   linie[ilosc_linii][len - 1] = '\0';
+  }
+  wchar_t wstr[100];
+  int szerokosc_linii = 0;
+  if (mbstowcs(wstr, linie[ilosc_linii], 100) != (size_t)-1)
+  {
+   szerokosc_linii = wcswidth(wstr, 100);
+   if (szerokosc_linii < 0) szerokosc_linii = (int)strlen(linie[ilosc_linii]);
+  }
+  else
+  {
+   szerokosc_linii = (int)strlen(linie[ilosc_linii]);
+  }
+
+  if (szerokosc_linii > max_dlugosc)
+  {
+   max_dlugosc = szerokosc_linii;
+  }
+  ilosc_linii++;
+ }
+ fclose(plik);
+ if (ilosc_linii == 0) return;
+ // Najpierw wymuś zaktualizowanie rzeczywistych wymiarów stdscr (wiersze, kolumny)
+ odswiez_rozmiar_ekranu();
+ // Przygotowanie kolorów (Zielony tekst na czarnym tle)
+ init_pair(20, COLOR_GREEN, COLOR_BLACK);
+ // Utwórz okno i rozciagnij je do aktualnego rozmiaru ekranu (wiersze x kolumny)
+ WINDOW * okno_splash = newwin(0, 0, 0, 0);
+ wresize(okno_splash, wiersze, kolumny);
+ werase(okno_splash);
+ logo_snake(&okno_splash);
+ wattrset(okno_splash, COLOR_PAIR(20));
+ wattron(okno_splash, A_BOLD);
+ // Wylicz środkowe pozycje na podstawie globalnych wiersze i kolumny
+ int start_y = (wiersze - ilosc_linii) / 2;
+ int start_x = (kolumny - max_dlugosc) / 2;
+ if (start_y < 0) start_y = 0;
+ if (start_x < 0) start_x = 0;
+ // Rysowanie węża linia po linii
+ for (int i = 0; i < ilosc_linii; i++)
+ {
+  mvwprintw(okno_splash, start_y + i, start_x, "%s", linie[i]);
+ }
+ wrefresh(okno_splash);
+ // Wyświetlanie przez 3 sekundy
+ napms(3000);
+ delwin(okno_splash);
+}
+
+//----------------------------------------------------------------------
 
 void wielkosc_okna (WINDOW ** okno)
 {
@@ -184,20 +266,20 @@ void wielkosc_okna (WINDOW ** okno)
 
 //----------------------------------------------------------------------
 
-void logo_snake (WINDOW ** okno, konf ** ustawienia)
+void logo_snake (WINDOW ** okno)
 {
 // funkcja wyświetla logo w oknie
  int y;
- char snake1[]="+-------+";
- char snake2[]="| SNAKE |";
+ char snake1[]="+-------------+";
+ char snake2[]="| Snake4Linux |";
  init_pair(1,COLOR_YELLOW,COLOR_BLACK);
  init_pair(3,COLOR_WHITE,COLOR_BLACK);
  wattrset((*okno), COLOR_PAIR(1));
  wattron((*okno),A_BOLD);
- y=(wiersze/5)-1;
- mvwprintw((*okno),y,(kolumny-9)/2,"%s",snake1);
- mvwprintw((*okno),++y,(kolumny-9)/2,"%s",snake2);
- mvwprintw((*okno),++y,(kolumny-9)/2,"%s",snake1);
+ y=(wiersze/5)-2;
+ mvwprintw((*okno),y,(kolumny-15)/2,"%s",snake1);
+ mvwprintw((*okno),++y,(kolumny-15)/2,"%s",snake2);
+ mvwprintw((*okno),++y,(kolumny-15)/2,"%s",snake1);
  wattrset((*okno), COLOR_PAIR(3));
  wattron((*okno),A_BOLD);
 }
@@ -297,18 +379,32 @@ void menu (konf ** ustawienia)
  };
  WINDOW * okno_menu;
  noecho();
+ odswiez_rozmiar_ekranu();
  okno_menu=newwin(0, 0, 0, 0);
  keypad(okno_menu,TRUE); //support do klawiszy funkcyjnych
  wybor=0;
  do
  {
   wielkosc_okna(&okno_menu);
-  logo_snake(&okno_menu,ustawienia);
+  logo_snake(&okno_menu);
   mvwprintw(okno_menu, Y-2, (kolumny-strlen(naglowek))/2, "%s", naglowek);
   mvwprintw(okno_menu, Y, (kolumny-strlen(opcje[wybor]))/2, "%s", opcje[wybor]);
   
   do
+  {
    klawisz=pobierz_klawisz(okno_menu, true);
+   // Jeśli nastąpiła zmiana rozmiaru ekranu z Knulli, natychmiast przerysuj menu
+   if (klawisz == KEY_RESIZE)
+   {
+    odswiez_rozmiar_ekranu();
+    wresize(okno_menu, wiersze, kolumny);
+    werase(okno_menu);
+    logo_snake(&okno_menu);
+    mvwprintw(okno_menu, Y-2, (kolumny-strlen(naglowek))/2, "%s", naglowek);
+    mvwprintw(okno_menu, Y, (kolumny-strlen(opcje[wybor]))/2, "%s", opcje[wybor]);
+    wrefresh(okno_menu);
+   }
+  }
   while(klawisz != KEY_RIGHT && klawisz != KEY_LEFT && klawisz != '\n');
 
   if(klawisz == '\n')
@@ -356,7 +452,7 @@ void wyniki (konf ** ustawienia)
  WINDOW * okno_wyniki;
  noecho();
  okno_wyniki=newwin(0, 0, 0, 0);
- logo_snake(&okno_wyniki,ustawienia);
+ logo_snake(&okno_wyniki);
  mvwprintw(okno_wyniki, Y - 2, (kolumny - strlen(naglowek)) / 2, "%s", naglowek);
  wczytaj_wyniki( &(dane[0]) );
  // Wyliczenie stałej pozycji X dla wszystkich wierszy (dla bloku o szerokości np. 22 znaków)
@@ -417,7 +513,7 @@ void informacje (konf ** ustawienia)
  noecho();
  okno_informacje = newwin(0, 0, 0, 0);
  wielkosc_okna(&okno_informacje);
- logo_snake(&okno_informacje, ustawienia);
+ logo_snake(&okno_informacje);
  mvwprintw(okno_informacje, Y - 2, (kolumny - strlen(naglowek)) / 2, "%s", naglowek);
  if (wczytaj_informacje(dane) == 0 )
  {
@@ -433,7 +529,7 @@ void informacje (konf ** ustawienia)
   znak = pobierz_klawisz(okno_informacje, true);
  while (znak != '\n' && znak != ' ' && znak != 32);
  wielkosc_okna(&okno_informacje);
- logo_snake(&okno_informacje, ustawienia);
+ logo_snake(&okno_informacje);
  mvwprintw(okno_informacje, Y-2, (kolumny - strlen(naglowek)) / 2, "%s", naglowek);
  mvwprintw(okno_informacje, Y, (kolumny - strlen(tekst1)) / 2, "%s", tekst1);
  mvwprintw(okno_informacje, Y+1, (kolumny - strlen(tekst2)) / 2, "%s", tekst2);
@@ -469,7 +565,7 @@ void menu_ustawienia (konf ** ustawienia)
  do
  { 
   wielkosc_okna(&okno_menu_ustawienia);
-  logo_snake(&okno_menu_ustawienia,ustawienia);
+  logo_snake(&okno_menu_ustawienia);
   mvwprintw(okno_menu_ustawienia, Y-2, ((kolumny-strlen(naglowek))/2), "%s", naglowek);
   mvwprintw(okno_menu_ustawienia, Y, ((kolumny-strlen(opcje[wybor]))/2), "%s", opcje[wybor]);
   
@@ -530,7 +626,7 @@ void zmien_szybkosc(konf ** ustawienia)
  do
  {
   wielkosc_okna(&okno_szybkosc);
-  logo_snake (&okno_szybkosc,ustawienia);
+  logo_snake (&okno_szybkosc);
   mvwprintw(okno_szybkosc, Y - 2, (kolumny - strlen(naglowek)) / 2, "%s", naglowek);
   mvwprintw(okno_szybkosc, Y, (kolumny - strlen(tytyl)) / 2, "%s", tytyl);
   mvwprintw(okno_szybkosc, Y + 2, (kolumny - 2) / 2, "%2d", (*ustawienia)->szybkosc);
@@ -559,7 +655,9 @@ void zmien_kolor_weza(konf ** ustawienia)
  int klawisz;
  const char* naglowek = " Ustawienia :";
  const char* tytyl = "** Ustaw kolor węża **";
- char symb = 'o'; // <--- Ustawienie symbolu do podglądu
+ char glowa = '<';
+ char tulow = 'o';
+ char ogon = '.';
  WINDOW * okno_kolor_weza;
  noecho();
  okno_kolor_weza=newwin(0, 0, 0, 0);
@@ -567,13 +665,13 @@ void zmien_kolor_weza(konf ** ustawienia)
  do
  {
   wielkosc_okna(&okno_kolor_weza);
-  logo_snake (&okno_kolor_weza,ustawienia);
+  logo_snake (&okno_kolor_weza);
   mvwprintw(okno_kolor_weza,Y-2,(kolumny-strlen(naglowek))/2, "%s", naglowek);
   mvwprintw(okno_kolor_weza,Y,(kolumny-strlen(tytyl))/2, "%s", tytyl);
   init_pair(2,(*ustawienia)->kolor_weza,COLOR_BLACK);
   wattrset(okno_kolor_weza, COLOR_PAIR(2));
   wattron(okno_kolor_weza,A_BOLD);
-  mvwprintw(okno_kolor_weza,Y+2,(kolumny-2)/2,"%c%c%c%c%c",symb,symb,symb,symb,symb);
+  mvwprintw(okno_kolor_weza,Y+2,(kolumny-7)/2,"%c%c%c%c%c%c%c",glowa,tulow,tulow,tulow,tulow,tulow,ogon);
   wrefresh(okno_kolor_weza);
   klawisz=pobierz_klawisz(okno_kolor_weza, true);
   switch (klawisz)
@@ -583,7 +681,7 @@ void zmien_kolor_weza(konf ** ustawienia)
      (*ustawienia)->kolor_weza-=1;
     break;
    case KEY_RIGHT:
-    if( (*ustawienia)->kolor_weza < 7 )
+    if( (*ustawienia)->kolor_weza < 15 )
      (*ustawienia)->kolor_weza+=1;
     break;
   }
@@ -606,7 +704,7 @@ void zmien_kolor_pokarmu(konf ** ustawienia)
  do
  {
   wielkosc_okna(&okno_kolor_pokarmu);
-  logo_snake (&okno_kolor_pokarmu,ustawienia);
+  logo_snake (&okno_kolor_pokarmu);
   mvwprintw(okno_kolor_pokarmu,Y-2,(kolumny-strlen(naglowek))/2, "%s", naglowek);
   mvwprintw(okno_kolor_pokarmu,Y,(kolumny-strlen(tytyl))/2, "%s", tytyl);
   init_pair(2,(*ustawienia)->kolor_pokarmu,COLOR_BLACK);
@@ -622,7 +720,7 @@ void zmien_kolor_pokarmu(konf ** ustawienia)
      (*ustawienia)->kolor_pokarmu-=1;
     break;
    case KEY_RIGHT:
-    if( (*ustawienia)->kolor_pokarmu < 7 )
+    if( (*ustawienia)->kolor_pokarmu < 15 )
      (*ustawienia)->kolor_pokarmu+=1;
     break;
   }
@@ -646,7 +744,7 @@ void zmien_okno_gry (konf **ustawienia)
  do
  {
   wielkosc_okna(&okno);
-  logo_snake (&okno,ustawienia);
+  logo_snake (&okno);
   mvwprintw(okno,Y-2,(kolumny-strlen(naglowek))/2, "%s", naglowek);
   mvwprintw(okno,Y,(kolumny-strlen(tytyl))/2, "%s", tytyl);
   mvwprintw(okno,Y+2,(kolumny-8)/2,"%3d x %2d",(*ustawienia)->szerokosc,(*ustawienia)->wysokosc);
@@ -691,7 +789,7 @@ void zmien_przenikanie(konf ** ustawienia)
  do
  {
   wielkosc_okna(&okno_przenikanie);
-  logo_snake (&okno_przenikanie,ustawienia);
+  logo_snake (&okno_przenikanie);
   mvwprintw(okno_przenikanie,Y-2,(kolumny-strlen(naglowek))/2, "%s", naglowek);
   mvwprintw(okno_przenikanie,Y,(kolumny-strlen(tytyl))/2, "%s", tytyl);
   
@@ -727,7 +825,7 @@ void zapis_ustawien (konf **ustawienia)
  char znak;
  okno_zapis=newwin(0, 0, 0, 0);
  wielkosc_okna(&okno_zapis);
- logo_snake (&okno_zapis,ustawienia);
+ logo_snake (&okno_zapis);
  mvwprintw(okno_zapis,Y-2,(kolumny-strlen(naglowek))/2, "%s", naglowek);
  if (plik != NULL)
  {
@@ -780,10 +878,8 @@ if( (*ustawienia)->wysokosc > wiersze - 1)
   x = 0;
  else
   x = (kolumny - (*ustawienia)->szerokosc) / 2;
- 
  okno_gra=newwin((*ustawienia)->wysokosc,(*ustawienia)->szerokosc, y, x);
  keypad(okno_gra, TRUE);
-
  // Prędkość gry: im wyższa wartość w ustawieniach, tym wyższa wartość opóźnienia w ms
  int opoznienie = 300 - ((*ustawienia)->szybkosc * 25); 
  if (opoznienie < 30) opoznienie = 30; // Zabezpieczenie przed ujemnym/zbyt małym czasem
@@ -793,21 +889,17 @@ if( (*ustawienia)->wysokosc > wiersze - 1)
  generuj_weza(&waz);
  generuj_los(&los, ustawienia);
 
- do
+do
  { 
   werase(okno_gra);
-  rysuj_pasek_gorny(okno_pasek, &waz, ustawienia);
   wattrset(okno_gra, COLOR_PAIR(8));
   box (okno_gra,0,0);
-  
   rysuj_weza(okno_gra,&waz,ustawienia,kierunek);
   rysuj_los(okno_gra,&los,ustawienia);
   wrefresh(okno_gra);
-
   // Ustawiamy timeout na okno gry
   wtimeout(okno_gra, opoznienie);
   key = pobierz_klawisz(okno_gra, false);
-
   // OBSŁUGA PAUZY (Klawisz "A" zwraca '\n')
   if (key == '\n')
   {
@@ -830,7 +922,6 @@ if( (*ustawienia)->wysokosc > wiersze - 1)
    wtimeout(okno_gra, opoznienie);
    continue; // Przejdź do kolejnej iteracji (omija ruch węża w tym cyklu)
   }
-
   switch (key)
   {
    case KEY_LEFT : case 'a': case 'A':
@@ -849,9 +940,9 @@ if( (*ustawienia)->wysokosc > wiersze - 1)
 
   if( przesun_weza(&waz, &los, kierunek, ustawienia) == 1) 
    break;
-
+  rysuj_pasek_gorny(okno_pasek, &waz, ustawienia);
  } 
- while(key != ' ' && key != 32); // pętla trwa do wciniecia klawisza X na gamepadzie
+ while(key != ' ' && key != 32);
  
  pkt=koniec_gry(okno_gra,&waz,ustawienia);
  nodelay(okno_gra, FALSE);
@@ -1057,6 +1148,7 @@ int przesun_weza(snake ** waz ,snake ** los ,char kierunek, konf ** ustawienia)
   delete (*waz)->tail;
   (*waz)->tail = NULL;
  }
+ return 0;
 }
 
 //----------------------------------------------------------------------
@@ -1269,7 +1361,7 @@ void zmien_rekord (int pkt,int nr,noty * dane, konf ** ustawienia)
  FILE * plik=fopen("wyniki","w");
  okno_wpis=newwin(0, 0, 0, 0);
  wielkosc_okna(&okno_wpis);
- logo_snake(&okno_wpis,ustawienia);
+ logo_snake(&okno_wpis);
 // Przypisanie nazwy węża na podstawie zajętego miejsca
  switch (nr)
  {
