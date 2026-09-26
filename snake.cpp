@@ -22,6 +22,7 @@ struct konf
 struct snake
 {
  int x,y;
+ bool trawienie;
  snake * head, * tail;
 };
 
@@ -884,6 +885,7 @@ void generuj_weza(snake **waz)
  (*waz)=new snake;
  (*waz)->x=10;
  (*waz)->y=5;
+ (*waz)->trawienie = false;
  (*waz)->head=NULL;
  for(i = 1; i <= max; i++)
  {
@@ -892,6 +894,7 @@ void generuj_weza(snake **waz)
   (*waz)=(*waz)->tail;
   (*waz)->x=10-i;
   (*waz)->y=5;
+  (*waz)->trawienie = false;
  }
  (*waz)->tail=NULL;
 }
@@ -940,8 +943,15 @@ void rysuj_weza(WINDOW * okno_gra, snake **waz, konf ** ustawienia, char kierune
   }
   else
   {
-   // TUŁÓW
-   mvwaddch(okno_gra, tmpx->y, tmpx->x, 'o');
+   // TUŁÓW: Jeśli segment niesie pokarm -> rysuj '@', w przeciwnym razie -> 'o'
+   if (tmpx->trawienie)
+   {
+    mvwaddch(okno_gra, tmpx->y, tmpx->x, '@');
+   }
+   else
+   {
+    mvwaddch(okno_gra, tmpx->y, tmpx->x, 'o');
+   }
   }
   tmpx = tmpx->tail;
  }
@@ -980,6 +990,7 @@ int przesun_weza(snake ** waz ,snake ** los ,char kierunek, konf ** ustawienia)
  (*waz)->head->tail=(*waz);
  (*waz)=(*waz)->head;
  (*waz)->head=NULL;
+ (*waz)->trawienie = false;
 
  switch (kierunek)
  {
@@ -1026,15 +1037,26 @@ int przesun_weza(snake ** waz ,snake ** los ,char kierunek, konf ** ustawienia)
  
  if (sprawdz_weza(waz) == 1)
   return 1;
-
- if( sprawdz_los(waz,los,ustawienia) == 0)
+ // Sprawdzenie czy głowa trafiła na jabłko
+ if (sprawdz_los(waz, los, ustawienia) == 1)
  {
-  while((*waz)->tail->tail!=NULL)
-   (*waz)=(*waz)->tail;
-  delete (*waz)->tail;
-  (*waz)->tail=NULL;
+  (*waz)->trawienie = true; // Oznaczamy głowę ; jedzenie połknięte
  }
- return 0;
+ // Przechodzimy na koniec ogona
+ while((*waz)->tail != NULL)
+  (*waz) = (*waz)->tail;
+ // Jeśli ostatni segment (ogon) zawierał jedzenie, wąż się wydłuża (nie usuwamy ogona)
+ if ((*waz)->trawienie)
+ {
+  (*waz)->trawienie = false; // Jedzenie zostało w pełni przetrawione o zmienione w nowy segment
+ }
+ else
+ {
+  // Jeśli na końcu nie było jedzenia, normalnie usuwamy ostatni segment ogona
+  (*waz) = (*waz)->head;
+  delete (*waz)->tail;
+  (*waz)->tail = NULL;
+ }
 }
 
 //----------------------------------------------------------------------
