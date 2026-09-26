@@ -1,9 +1,10 @@
 #include <curses.h>
 #include <stdlib.h>
 #include <clocale>
+#include <cstring>
 
 # define Y (int)((float)(wiersze)*0.5)
-# define X (int)((float)(kolumny)*0.1)
+# define X (int)((float)(kolumny)*0.5)
 # define ILOSC_WYNIKOW 5
 # define MIN_SZER 32
 # define MIN_WYS 12
@@ -285,6 +286,14 @@ void wczytaj_ustawienia(konf ** ustawienia)
 void menu (konf ** ustawienia)
 {
  int wybor,klawisz;
+ const char* naglowek = "  Menu :";
+ const char* opcje[] = {
+  "    .: Gra :.    ",
+  " .: Ustawienia :.",
+  "  .: Wyniki :.   ",
+  " .: Informacje :.",
+  "   .: Wyjście :. "
+ };
  WINDOW * okno_menu;
  noecho();
  okno_menu=newwin(0, 0, 0, 0);
@@ -294,25 +303,8 @@ void menu (konf ** ustawienia)
  {
   wielkosc_okna(&okno_menu);
   logo_snake(&okno_menu,ustawienia);
-  mvwprintw(okno_menu,Y-2,X,"  Menu :");
-  switch (wybor)
-  {
-   case 0:
-    mvwprintw(okno_menu,Y,X,".: Gra :.");
-    break;
-   case 1:
-    mvwprintw(okno_menu,Y,X,".: Ustawienia :.");
-    break;
-   case 2:
-    mvwprintw(okno_menu,Y,X,".: Wyniki :.");
-    break;
-   case 3:
-    mvwprintw(okno_menu,Y,X,".: Informacje :.");
-    break;
-   case 4:
-    mvwprintw(okno_menu,Y,X,".: Wyjście :.");
-    break;
-  }
+  mvwprintw(okno_menu, Y-2, (kolumny-strlen(naglowek))/2, "%s", naglowek);
+  mvwprintw(okno_menu, Y, (kolumny-strlen(opcje[wybor]))/2, "%s", opcje[wybor]);
   
   do
    klawisz=pobierz_klawisz(okno_menu, true);
@@ -356,20 +348,21 @@ void menu (konf ** ustawienia)
 void wyniki (konf ** ustawienia)
 {
 // funkcja wyświetla wyniki
-int i;
+ int i;
  char znak;
+ const char* naglowek = " Wyniki :";
  noty dane[ILOSC_WYNIKOW]; // Tablica na 5 wyników
  WINDOW * okno_wyniki;
  noecho();
  okno_wyniki=newwin(0, 0, 0, 0);
  logo_snake(&okno_wyniki,ustawienia);
- mvwprintw(okno_wyniki,Y-2,X+2,"Wyniki :");
+ mvwprintw(okno_wyniki,Y-2, (kolumny-strlen(naglowek))/2, "%s", naglowek);
  wczytaj_wyniki( &(dane[0]) );
  // Wyświetlenie 5 wyników
  for(i = 0; i < ILOSC_WYNIKOW; i++)
  {
-  mvwprintw(okno_wyniki, Y+i, X+2, "%2d. %s", i+1, dane[i].osoba);
-  mvwprintw(okno_wyniki, Y+i, X+18, "%4d", dane[i].rezultat); // Stała pozycja dla punktów
+  mvwprintw(okno_wyniki, Y+i, ((kolumny-strlen(dane[i].osoba))/2)-6, "%2d. %s", i+1, dane[i].osoba);
+  mvwprintw(okno_wyniki, Y+i, ((kolumny-strlen(dane[i].osoba))/2)+6, "%4d", dane[i].rezultat); // Stała pozycja dla punktów
  }
  wrefresh(okno_wyniki);
  do
@@ -390,7 +383,7 @@ int wczytaj_informacje (char * dane)
  else
  {
   fseek(plik,SEEK_SET,0);
-  fread(dane,600,1,plik);
+  fread(dane,1000,1,plik);
   fclose(plik);
   for(i=0;dane[i]!='\n';i++);
   dane[i]='\0';
@@ -410,44 +403,39 @@ int wczytaj_informacje (char * dane)
 void informacje (konf ** ustawienia)
 {
 // funkcja wyswietla informacje
- char dane[500],znak;
+ char dane[1000],znak;
+ const char* naglowek = "Informacje :";
+ const char* blad = "Brak pliku \"informacje\" !";
+ const char* tekst1 = "snake4linux : v1.1";
+ const char* tekst2 = "autor : Paweł Akonom";
  WINDOW * okno_informacje;
  noecho();
- okno_informacje=newwin(0, 0, 0, 0);
+ okno_informacje = newwin(0, 0, 0, 0);
  wielkosc_okna(&okno_informacje);
- logo_snake(&okno_informacje,ustawienia);
- mvwprintw(okno_informacje,Y-2,X+2,"Informacje :");
- if ( wczytaj_informacje(dane) == 0 )
+ logo_snake(&okno_informacje, ustawienia);
+ mvwprintw(okno_informacje, Y - 2, (kolumny - strlen(naglowek)) / 2, "%s", naglowek);
+ if (wczytaj_informacje(dane) == 0 )
  {
-  mvwprintw(okno_informacje,Y,X+2,"Brak pliku \"informacje\" !");
+  mvwprintw(okno_informacje, Y, (kolumny - strlen(blad)) / 2, "%s", blad);
   wrefresh(okno_informacje);
  }
  else
  {
-  mvwprintw(okno_informacje,Y,0,"%s",dane);
+  mvwprintw(okno_informacje, Y, 0, "%s", dane);
+  wrefresh(okno_informacje);
  }
  do
-  znak=pobierz_klawisz(okno_informacje, true);
- while(znak != '\n' && znak != ' ' && znak != 32);
- wielkosc_okna(&okno_informacje); 
- logo_snake(&okno_informacje,ustawienia);
- mvwprintw(okno_informacje,Y-2,X+2,"Informacje :");
- mvwprintw(okno_informacje,Y,X,"SNAKE 1.0 :");
- mvwprintw(okno_informacje,Y+2,X,"Aurox 9.2 Water");
- mvwprintw(okno_informacje,Y+3,X,"Linux 2.4.20-20.9");
- do
-  znak=pobierz_klawisz(okno_informacje, true);
- while(znak != '\n' && znak != ' ' && znak != 32);
+  znak = pobierz_klawisz(okno_informacje, true);
+ while (znak != '\n' && znak != ' ' && znak != 32);
  wielkosc_okna(&okno_informacje);
- logo_snake(&okno_informacje,ustawienia);
- mvwprintw(okno_informacje,Y-2,X+2,"Informacje :");
- mvwprintw(okno_informacje,Y,X,"Autor :");
- mvwprintw(okno_informacje,Y+2,X,"student UZ - Paweł Akonom");
- mvwprintw(okno_informacje,Y+3,X,"akus82@o2.pl");
+ logo_snake(&okno_informacje, ustawienia);
+ mvwprintw(okno_informacje, Y-2, (kolumny - strlen(naglowek)) / 2, "%s", naglowek);
+ mvwprintw(okno_informacje, Y, (kolumny - strlen(tekst1)) / 2, "%s", tekst1);
+ mvwprintw(okno_informacje, Y+1, (kolumny - strlen(tekst2)) / 2, "%s", tekst2);
  wrefresh(okno_informacje);
  do
-  znak=pobierz_klawisz(okno_informacje, true);
- while(znak != '\n' && znak != ' ' && znak != 32);
+  znak = pobierz_klawisz(okno_informacje, true);
+ while (znak != '\n' && znak != ' ' && znak != 32);
  delwin(okno_informacje);
 }
 
@@ -456,7 +444,17 @@ void informacje (konf ** ustawienia)
 
 void menu_ustawienia (konf ** ustawienia)
 {
- int wybor,klawisz;   
+ int wybor,klawisz;
+ const char* naglowek = "Ustawienia :";
+ const char* opcje[] = {
+  "  .: Szybkość węża :.",
+  "   .: Kolor węża :.  ",
+  ".: Kolor elementu :. ",
+  " .: Wielkość okna :. ",
+  " .: Przenikanie :.   ",
+  " .: Zapis ustawień :.",
+  ".: Wyjście do menu :."
+ };
  WINDOW * okno_menu_ustawienia;
  noecho();
  okno_menu_ustawienia=newwin(0, 0, 0, 0);
@@ -467,31 +465,8 @@ void menu_ustawienia (konf ** ustawienia)
  { 
   wielkosc_okna(&okno_menu_ustawienia);
   logo_snake(&okno_menu_ustawienia,ustawienia);
-  mvwprintw(okno_menu_ustawienia,Y-2,X+2,"Ustawienia :");
-  switch (wybor)
-  {
-   case 0:
-    mvwprintw(okno_menu_ustawienia,Y,X,".: Szybkość węża :. ");
-    break;
-   case 1:
-    mvwprintw(okno_menu_ustawienia,Y,X,".: Kolor węża :. ");
-    break;
-   case 2:
-    mvwprintw(okno_menu_ustawienia,Y,X,".: Kolor elementu :. ");
-    break;
-   case 3:
-    mvwprintw(okno_menu_ustawienia,Y,X,".: Wielkość okna :. ");
-    break;
-   case 4:
-    mvwprintw(okno_menu_ustawienia,Y,X,".: Przenikanie :. ");
-    break;
-   case 5:
-    mvwprintw(okno_menu_ustawienia,Y,X,".: Zapis ustawień :. ");
-    break;
-   case 6:
-    mvwprintw(okno_menu_ustawienia,Y,X,".: Wyjście do menu :. ");
-    break;
-  }
+  mvwprintw(okno_menu_ustawienia, Y-2, ((kolumny-strlen(naglowek))/2), "%s", naglowek);
+  mvwprintw(okno_menu_ustawienia, Y, ((kolumny-strlen(opcje[wybor]))/2), "%s", opcje[wybor]);
   
   do
    klawisz=pobierz_klawisz(okno_menu_ustawienia, true);
@@ -541,6 +516,8 @@ void menu_ustawienia (konf ** ustawienia)
 void zmien_szybkosc(konf ** ustawienia)
 {
  int klawisz;
+ const char* naglowek = " Ustawienia :";
+ const char* tytyl = "** Ustaw prędkość **";
  WINDOW * okno_szybkosc;
  noecho();
  okno_szybkosc=newwin(0, 0, 0, 0);
@@ -549,9 +526,9 @@ void zmien_szybkosc(konf ** ustawienia)
  {
   wielkosc_okna(&okno_szybkosc);
   logo_snake (&okno_szybkosc,ustawienia);
-  mvwprintw(okno_szybkosc,Y-2,X+2,"Ustawienia :");
-  mvwprintw(okno_szybkosc,Y,X,"** Ustaw prędkość **");
-  mvwprintw(okno_szybkosc,Y+2,X+10,"%2d",(*ustawienia)->szybkosc);
+  mvwprintw(okno_szybkosc, Y - 2, (kolumny - strlen(naglowek)) / 2, "%s", naglowek);
+  mvwprintw(okno_szybkosc, Y, (kolumny - strlen(tytyl)) / 2, "%s", tytyl);
+  mvwprintw(okno_szybkosc, Y + 2, (kolumny - 2) / 2, "%2d", (*ustawienia)->szybkosc);
   wrefresh(okno_szybkosc);
   klawisz=pobierz_klawisz(okno_szybkosc, true);
   switch (klawisz)
@@ -575,6 +552,8 @@ void zmien_szybkosc(konf ** ustawienia)
 void zmien_kolor_weza(konf ** ustawienia)
 {
  int klawisz;
+ const char* naglowek = " Ustawienia :";
+ const char* tytyl = "** Ustaw kolor węża **";
  char symb = 'o'; // <--- Ustawienie symbolu do podglądu
  WINDOW * okno_kolor_weza;
  noecho();
@@ -584,12 +563,12 @@ void zmien_kolor_weza(konf ** ustawienia)
  {
   wielkosc_okna(&okno_kolor_weza);
   logo_snake (&okno_kolor_weza,ustawienia);
-  mvwprintw(okno_kolor_weza,Y-2,X+2,"Ustawienia :");
-  mvwprintw(okno_kolor_weza,Y,X,"** Ustaw kolor węża **");
+  mvwprintw(okno_kolor_weza,Y-2,(kolumny-strlen(naglowek))/2, "%s", naglowek);
+  mvwprintw(okno_kolor_weza,Y,(kolumny-strlen(tytyl))/2, "%s", tytyl);
   init_pair(2,(*ustawienia)->kolor_weza,COLOR_BLACK);
   wattrset(okno_kolor_weza, COLOR_PAIR(2));
   wattron(okno_kolor_weza,A_BOLD);
-  mvwprintw(okno_kolor_weza,Y+2,X+9,"%c%c%c%c%c",symb,symb,symb,symb,symb);
+  mvwprintw(okno_kolor_weza,Y+2,(kolumny-2)/2,"%c%c%c%c%c",symb,symb,symb,symb,symb);
   wrefresh(okno_kolor_weza);
   klawisz=pobierz_klawisz(okno_kolor_weza, true);
   switch (klawisz)
@@ -613,6 +592,8 @@ void zmien_kolor_weza(konf ** ustawienia)
 void zmien_kolor_elem(konf ** ustawienia)
 {
  int klawisz;
+ const char* naglowek = " Ustawienia :";
+ const char* tytyl = "** Ustaw kolor elementu **";
  WINDOW * okno_kolor_elem;
  noecho();
  okno_kolor_elem=newwin(0, 0, 0, 0);
@@ -621,12 +602,12 @@ void zmien_kolor_elem(konf ** ustawienia)
  {
   wielkosc_okna(&okno_kolor_elem);
   logo_snake (&okno_kolor_elem,ustawienia);
-  mvwprintw(okno_kolor_elem,Y-2,X+2,"Ustawienia :");
-  mvwprintw(okno_kolor_elem,Y,X,"** Ustaw kolor elementu **");
+  mvwprintw(okno_kolor_elem,Y-2,(kolumny-strlen(naglowek))/2, "%s", naglowek);
+  mvwprintw(okno_kolor_elem,Y,(kolumny-strlen(tytyl))/2, "%s", tytyl);
   init_pair(2,(*ustawienia)->kolor_elem,COLOR_BLACK);
   wattrset(okno_kolor_elem, COLOR_PAIR(2));
   wattron(okno_kolor_elem,A_BOLD);
-  mvwprintw(okno_kolor_elem,Y+2,X+13,"%c",(*ustawienia)->symb_elem);
+  mvwprintw(okno_kolor_elem,Y+2,(kolumny-2)/2,"%c",(*ustawienia)->symb_elem);
   wrefresh(okno_kolor_elem);
   klawisz=pobierz_klawisz(okno_kolor_elem, true);
   switch (klawisz)
@@ -650,6 +631,8 @@ void zmien_kolor_elem(konf ** ustawienia)
 void zmien_okno_gry (konf **ustawienia)
 {
  int klawisz;
+ const char* naglowek = " Ustawienia :";
+ const char* tytyl = "** Ustaw wielkość okna **";
  WINDOW * okno;
  noecho();
  okno=newwin(0, 0, 0, 0);
@@ -659,9 +642,9 @@ void zmien_okno_gry (konf **ustawienia)
  {
   wielkosc_okna(&okno);
   logo_snake (&okno,ustawienia);
-  mvwprintw(okno,Y-2,X+2,"Ustawienia :");
-  mvwprintw(okno,Y,X,"** Ustaw wielkość okna **");
-  mvwprintw(okno,Y+2,X+9,"%3d * %2d",(*ustawienia)->szerokosc,(*ustawienia)->wysokosc);
+  mvwprintw(okno,Y-2,(kolumny-strlen(naglowek))/2, "%s", naglowek);
+  mvwprintw(okno,Y,(kolumny-strlen(tytyl))/2, "%s", tytyl);
+  mvwprintw(okno,Y+2,(kolumny-8)/2,"%3d x %2d",(*ustawienia)->szerokosc,(*ustawienia)->wysokosc);
   wmove(okno,wiersze-1,0);
   wrefresh(okno);
   klawisz=pobierz_klawisz(okno, true);
@@ -694,6 +677,8 @@ void zmien_okno_gry (konf **ustawienia)
 void zmien_przenikanie(konf ** ustawienia)
 {
  int klawisz;
+ const char* naglowek = " Ustawienia :";
+ const char* tytyl = "** Ustaw przez ściany **";
  WINDOW * okno_przenikanie;
  noecho();
  okno_przenikanie=newwin(0, 0, 0, 0);
@@ -702,13 +687,13 @@ void zmien_przenikanie(konf ** ustawienia)
  {
   wielkosc_okna(&okno_przenikanie);
   logo_snake (&okno_przenikanie,ustawienia);
-  mvwprintw(okno_przenikanie,Y-2,X+2,"Ustawienia :");
-  mvwprintw(okno_przenikanie,Y,X,"** Ustaw przez ściany **");
+  mvwprintw(okno_przenikanie,Y-2,(kolumny-strlen(naglowek))/2, "%s", naglowek);
+  mvwprintw(okno_przenikanie,Y,(kolumny-strlen(tytyl))/2, "%s", tytyl);
   
   if ((*ustawienia)->przenikanie)
-   mvwprintw(okno_przenikanie,Y+2,X+10,"tak");
+   mvwprintw(okno_przenikanie,Y+2,(kolumny-3)/2,"tak");
   else
-   mvwprintw(okno_przenikanie,Y+2,X+10,"nie");
+   mvwprintw(okno_przenikanie,Y+2,(kolumny-3)/2,"nie");
    
   wrefresh(okno_przenikanie);
   klawisz=pobierz_klawisz(okno_przenikanie, true);
@@ -729,25 +714,29 @@ void zmien_przenikanie(konf ** ustawienia)
 void zapis_ustawien (konf **ustawienia)
 {
  FILE * plik = fopen("ustawienia","w");
+ const char* naglowek = " Ustawienia :";
+ const char* tytyl = "** Zapis ustawien **";
+ const char* tekst1 = "Ustawienia zapisane !";
+ const char* tekst2 = "Blad podczas zapisu !";
  WINDOW * okno_zapis;
  char znak;
  okno_zapis=newwin(0, 0, 0, 0);
  wielkosc_okna(&okno_zapis);
  logo_snake (&okno_zapis,ustawienia);
- mvwprintw(okno_zapis,Y-2,X+2,"Ustawienia :");
+ mvwprintw(okno_zapis,Y-2,(kolumny-strlen(naglowek))/2, "%s", naglowek);
  if (plik != NULL)
  {
   fseek(plik,SEEK_SET,0);
   // Linia 1: szybkosc, 2: kolor_weza, 3: kolor_elem, 4: przenikanie (1/0), 5: wysokosc, 6: szerokosc
   fprintf(plik,"%d\n%d\n%d\n%d\n%d\n%d\n", (*ustawienia)->szybkosc, (*ustawienia)->kolor_weza, (*ustawienia)->kolor_elem, (*ustawienia)->przenikanie ? 1 : 0, (*ustawienia)->wysokosc, (*ustawienia)->szerokosc);
   fclose(plik);
-  mvwprintw(okno_zapis,Y,X,"** Zapis ustawien **");
-  mvwprintw(okno_zapis,Y+2,X,"Ustawienia zapisane !");
+  mvwprintw(okno_zapis,Y,(kolumny-strlen(tytyl))/2, "%s", tytyl);
+  mvwprintw(okno_zapis,Y+2,(kolumny-strlen(tekst1))/2, "%s",tekst1);
  }
  else
  {
-  mvwprintw(okno_zapis,Y,X,"** Zapis ustawien **");
-  mvwprintw(okno_zapis,Y+2,X,"Blad podczas zapisu !");
+  mvwprintw(okno_zapis,Y,(kolumny-strlen(tytyl))/2, "%s", tytyl);
+  mvwprintw(okno_zapis,Y+2,(kolumny-strlen(tekst2))/2, "%s",tekst2);
  }
  wrefresh(okno_zapis);
  do
@@ -1031,6 +1020,7 @@ int koniec_gry(WINDOW * okno_gra, snake ** waz, konf ** ustawienia)
 {
  int ilosc=0;
  float pkt;
+ const char* tytyl = "KONIEC GRY";
  system("aplay -q game-over.wav > /dev/null 2>&1 &");
  while((*waz)->head!=NULL)
   (*waz)=(*waz)->head;
@@ -1043,15 +1033,13 @@ int koniec_gry(WINDOW * okno_gra, snake ** waz, konf ** ustawienia)
  init_pair(1,COLOR_RED,COLOR_BLACK);
  wattrset(okno_gra,COLOR_PAIR(1));
  wattron(okno_gra,A_BOLD);
- mvwprintw(okno_gra,((*ustawienia)->wysokosc/2)-3,((*ustawienia)->szerokosc-10)/2,"KONIEC GRY");
- mvwprintw(okno_gra,((*ustawienia)->wysokosc/2)-1,((*ustawienia)->szerokosc-11)/2,"długość: %3d",ilosc);
+ mvwprintw(okno_gra,(*ustawienia)->wysokosc/2,((*ustawienia)->szerokosc-strlen(tytyl))/2, "%s", tytyl);
 
  // Mnożnik punktów: x1.5 jeśli przenikanie jest wyłączone, x1 jeśli włączone
  float mnoznik_scian = ((*ustawienia)->przenikanie) ? 1.0f : 1.5f;
  float pole_powierzchni = (float)((*ustawienia)->wysokosc * (*ustawienia)->szerokosc);
- pkt = (5000.0f * (float)(*ustawienia)->szybkosc / pole_powierzchni) * (float)ilosc * mnoznik_scian;
+ pkt = (5000.0f * (float)(*ustawienia)->szybkosc / pole_powierzchni) * ((float)ilosc-3.0) * mnoznik_scian;
 
- mvwprintw(okno_gra,((*ustawienia)->wysokosc/2)+1,((*ustawienia)->szerokosc-11)/2,"punkty: %4d",(int)pkt);
  wrefresh(okno_gra);
  return (int)pkt;
 }
@@ -1097,7 +1085,7 @@ void rysuj_pasek_gorny(WINDOW * okno_pasek, snake ** waz, konf ** ustawienia)
  // Oblicz punktację na żywo
  float mnoznik_scian = ((*ustawienia)->przenikanie) ? 1.0f : 1.5f;
  float pole_powierzchni = (float)((*ustawienia)->wysokosc * (*ustawienia)->szerokosc);
- float pkt = (5000.0f * (float)(*ustawienia)->szybkosc / pole_powierzchni) * (float)dlugosc * mnoznik_scian;
+ float pkt = (5000.0f * (float)(*ustawienia)->szybkosc / pole_powierzchni) * ((float)dlugosc-3.0) * mnoznik_scian;
  init_pair(9, COLOR_WHITE, COLOR_BLACK);
  wattrset(okno_pasek, COLOR_PAIR(9));
  wattron(okno_pasek, A_BOLD);
@@ -1161,7 +1149,7 @@ void generuj_wyniki(void)
 // funkcja generuje domyślne wyniki w razie braku pliku
  FILE * plik = fopen("wyniki","w");
  if (plik == NULL) return;
- char temp[] = "Pyton\n50\nBoa\n40\nKobra\n30\nZaskroniec\n20\nŻmija\n10\n";
+ char temp[] = "Pyton\n50\nBoa\n40\nKobra\n30\nZaskroniec\n20\nZmija\n10\n";
  XOR (temp);
  fprintf(plik,"%s",temp);
  fclose(plik);
@@ -1244,13 +1232,15 @@ void zmien_rekord (int pkt,int nr,noty * dane, konf ** ustawienia)
 {
  int k;
  char temp[256];
+ char tekst1[64];
+ char tekst2[64];
  const char* nazwa_weza;
  WINDOW * okno_wpis;
  FILE * plik=fopen("wyniki","w");
  okno_wpis=newwin(0, 0, 0, 0);
  wielkosc_okna(&okno_wpis);
  logo_snake(&okno_wpis,ustawienia);
-// Przypisanie nazwy węża na podstawie zajętego miejsca (nr: 0 = 1. miejsce, 1 = 2. miejsce, 2 = 3. miejsce)
+// Przypisanie nazwy węża na podstawie zajętego miejsca
  switch (nr)
  {
   case 0:
@@ -1267,11 +1257,13 @@ void zmien_rekord (int pkt,int nr,noty * dane, konf ** ustawienia)
    nazwa_weza = "Zaskroniec";
    break;
   case 4:
-   nazwa_weza = "Żmija";
+   nazwa_weza = "Zmija";
    break;
  }
- mvwprintw(okno_wpis,Y,X,"Nowy rekord, %d miejsce:",nr+1);
- mvwprintw(okno_wpis, Y + 2, X, "Twój wąż to %s", nazwa_weza);
+ sprintf(tekst1, "Nowy rekord, %d miejsce:", nr + 1);
+ sprintf(tekst2, " Twój wąż to %s", nazwa_weza);
+ mvwprintw(okno_wpis, Y, (kolumny-strlen(tekst1))/2, "%s", tekst1);
+ mvwprintw(okno_wpis, Y+2, (kolumny-strlen(tekst2))/2, "%s", tekst2);
  wrefresh(okno_wpis);
  // Czekamy na zatwierdzenie przyciskiem A / Enter / D-Pad
  pobierz_klawisz(okno_wpis, true);
