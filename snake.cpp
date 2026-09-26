@@ -356,13 +356,17 @@ void wyniki (konf ** ustawienia)
  noecho();
  okno_wyniki=newwin(0, 0, 0, 0);
  logo_snake(&okno_wyniki,ustawienia);
- mvwprintw(okno_wyniki,Y-2, (kolumny-strlen(naglowek))/2, "%s", naglowek);
+ mvwprintw(okno_wyniki, Y - 2, (kolumny - strlen(naglowek)) / 2, "%s", naglowek);
  wczytaj_wyniki( &(dane[0]) );
- // Wyświetlenie 5 wyników
+ // Wyliczenie stałej pozycji X dla wszystkich wierszy (dla bloku o szerokości np. 22 znaków)
+ int start_x = (kolumny - 22) / 2;
+ // Wyświetlenie 5 wyników - idealnie wyrownanych w pionie
  for(i = 0; i < ILOSC_WYNIKOW; i++)
  {
-  mvwprintw(okno_wyniki, Y+i, ((kolumny-strlen(dane[i].osoba))/2)-6, "%2d. %s", i+1, dane[i].osoba);
-  mvwprintw(okno_wyniki, Y+i, ((kolumny-strlen(dane[i].osoba))/2)+6, "%4d", dane[i].rezultat); // Stała pozycja dla punktów
+  // numer pozycji (2 znaki)
+  // nazwa wyrównana do lewej w polu o szerokości 12 znaków
+  // wynik wyrównany do prawej w polu o szerokości 5 znaków
+  mvwprintw(okno_wyniki, Y + i, start_x, "%2d. %-12s %5d", i + 1, dane[i].osoba, dane[i].rezultat);
  }
  wrefresh(okno_wyniki);
  do
@@ -1169,43 +1173,27 @@ void XOR (char * tekst) // Ciiii ;)
 
 void wczytaj_wyniki (noty * dane)
 {
- int i,j,k;
- FILE * plik;
- char temp[50],liczba[5];
- // funkcja wczytuje dane o wynikach do stróktury
- if ( (plik=fopen("wyniki","r")) == NULL)
+ FILE * plik = fopen("wyniki", "r");
+ char temp[256];
+ int i;
+ if (plik == NULL)
  {
-  generuj_wyniki();
-  wczytaj_wyniki (dane);
- }
- else
- {
-  fseek(plik,SEEK_SET,0);
-  size_t bytes = fread(temp, 1, sizeof(temp) - 1, plik);
-  temp[bytes] = '\0';
-  XOR(temp);
-  fclose(plik); 
-  // 10 linii tekstu (5 nazw + 5 wartości)
-  for(i=0, k=0; k!=10 && temp[i]!='\0'; i++)
+  // Jeśli plik nie istnieje, ustawiamy domyślne wartości
+  const char* domyslne_nazwy[5] = {"Pyton", "Boa", "Kobra", "Zaskroniec", "Zmija"};
+  int domyslne_punkty[5] = {50, 40, 30, 20, 10};
+  for (i = 0; i < ILOSC_WYNIKOW; i++)
   {
-   if( temp[i]=='\n')
-    k++;
+   sprintf(dane[i].osoba, "%s", domyslne_nazwy[i]);
+   dane[i].rezultat = domyslne_punkty[i];
   }
-  temp[i]=0;
-  // wczytywanie 5 rekordów z bufora do struktury
-  for(i=0, k=0; k < ILOSC_WYNIKOW; k++)
-  {
-   for(j=0; temp[i]!='\n' && temp[i]!='\0'; i++, j++)
-    dane[k].osoba[j]=temp[i];
-   dane[k].osoba[j]='\0';
-   if(temp[i]=='\n') i++;
-   for (j=0; temp[i]!='\n' && temp[i]!='\0'; j++, i++)
-    liczba[j]=temp[i];
-   liczba[j]='\0';
-   dane[k].rezultat=atoi(liczba);
-   if(temp[i]=='\n') i++;
-  }
+  return;
  }
+ // Wczytanie zawartości pliku
+ fread(temp, sizeof(char), 255, plik);
+ fclose(plik);
+ XOR(temp);
+ // Odczytanie wartości z odszyfrowanego bufora
+ sscanf(temp, "%s %d %s %d %s %d %s %d %s %d",dane[0].osoba, &dane[0].rezultat,dane[1].osoba, &dane[1].rezultat,dane[2].osoba, &dane[2].rezultat,dane[3].osoba, &dane[3].rezultat,dane[4].osoba, &dane[4].rezultat);
 }
 
 //----------------------------------------------------------------------
@@ -1215,11 +1203,12 @@ void sprawdz_punkty (int pkt, konf ** ustawienia)
  int i;
  noty dane[ILOSC_WYNIKOW];
  wczytaj_wyniki( &(dane[0]) );
- // sprawdzenie rezultatu z dotychczasowymi wynikami
+ // Przeglądamy rekordy od 1. do 5. miejsca
  for(i = 0; i < ILOSC_WYNIKOW; i++)
  {
   if(pkt > dane[i].rezultat)
   {
+   // Znaleźliśmy najwyższe miejsce, które pobiliśmy!
    zmien_rekord (pkt, i, &(dane[0]), ustawienia);
    break;
   }
@@ -1267,12 +1256,11 @@ void zmien_rekord (int pkt,int nr,noty * dane, konf ** ustawienia)
  wrefresh(okno_wpis);
  // Czekamy na zatwierdzenie przyciskiem A / Enter / D-Pad
  pobierz_klawisz(okno_wpis, true);
-// Przesunięcie niższych rekordów w dół (od indeksu 4 do nr)
- for(k = ILOSC_WYNIKOW - 1; k > nr; k--)
- {
-  dane[k].rezultat = dane[k-1].rezultat;
-  sprintf(dane[k].osoba, "%s", dane[k-1].osoba);
- }
+ // zmiana wpisów w tabeli rezultatów
+ sprintf(dane[nr].osoba, "%s", nazwa_weza);
+ dane[nr].rezultat = pkt;
+ // Zapis zaktualizowanej tablicy do pliku
+ sprintf(temp,"%s\n%d\n%s\n%d\n%s\n%d\n%s\n%d\n%s\n%d\n",dane[0].osoba,dane[0].rezultat,dane[1].osoba,dane[1].rezultat,dane[2].osoba,dane[2].rezultat,dane[3].osoba,dane[3].rezultat,dane[4].osoba,dane[4].rezultat);
  // Zapisanie nowej nazwy węża i punktów
  sprintf(dane[nr].osoba, "%s", nazwa_weza);
  dane[nr].rezultat = pkt;
