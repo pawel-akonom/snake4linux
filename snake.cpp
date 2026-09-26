@@ -13,10 +13,10 @@ int kolumny,wiersze;
 
 struct konf
 {
- int szybkosc,kolor_weza,kolor_elem;
+ int szybkosc,kolor_weza,kolor_pokarmu;
  bool przenikanie;
  int wysokosc,szerokosc;
- char symb_elem;
+ char symbol_pokarmu;
 };
 
 struct snake
@@ -52,7 +52,7 @@ void wyniki (konf ** ustawienia);
 void menu_ustawienia (konf ** ustawienia);
 void zmien_szybkosc(konf ** ustawienia);
 void zmien_kolor_weza(konf ** ustawienia);
-void zmien_kolor_elem(konf ** ustawienia);
+void zmien_kolor_pokarmu(konf ** ustawienia);
 void zmien_okno_gry (konf **ustawienia);
 void zmien_przenikanie(konf **ustawienia);
 void zapis_ustawien (konf **ustawienia);
@@ -245,11 +245,11 @@ void wczytaj_ustawienia(konf ** ustawienia)
   // Domyślne wartości bezpośrednio do struktury:
   (*ustawienia)->szybkosc   = 6;
   (*ustawienia)->kolor_weza = 2;
-  (*ustawienia)->kolor_elem = 3;
+  (*ustawienia)->kolor_pokarmu = 3;
   (*ustawienia)->przenikanie = true;
   (*ustawienia)->wysokosc   = MIN_WYS;
   (*ustawienia)->szerokosc  = MIN_SZER;
-  (*ustawienia)->symb_elem  = '*';
+  (*ustawienia)->symbol_pokarmu  = '*';
   return;
  }
 
@@ -272,14 +272,14 @@ void wczytaj_ustawienia(konf ** ustawienia)
  // Przypisanie do konfiguracji
  (*ustawienia)->szybkosc    = (atoi(liczba[0]) % 11);
  (*ustawienia)->kolor_weza  = (atoi(liczba[1]) % 8);
- (*ustawienia)->kolor_elem  = (atoi(liczba[2]) % 8);
+ (*ustawienia)->kolor_pokarmu  = (atoi(liczba[2]) % 8);
  (*ustawienia)->przenikanie = (atoi(liczba[3]) != 0); // 1 -> true, 0 -> false
 
  int wys = atoi(liczba[4]);
  int szer = atoi(liczba[5]);
  (*ustawienia)->wysokosc   = (wys < MIN_WYS) ? MIN_WYS : wys;
  (*ustawienia)->szerokosc  = (szer < MIN_SZER) ? MIN_SZER : szer;
- (*ustawienia)->symb_elem  = '*';
+ (*ustawienia)->symbol_pokarmu  = '*';
 }
 
 //----------------------------------------------------------------------
@@ -454,7 +454,7 @@ void menu_ustawienia (konf ** ustawienia)
  const char* opcje[] = {
   "  .: Szybkość węża :.",
   "   .: Kolor węża :.  ",
-  ".: Kolor elementu :. ",
+  ".: Kolor pokarmu :. ",
   " .: Wielkość okna :. ",
   " .: Przenikanie :.   ",
   " .: Zapis ustawień :.",
@@ -490,7 +490,7 @@ void menu_ustawienia (konf ** ustawienia)
      menu_ustawienia(ustawienia);
      break;
     case 2:
-     zmien_kolor_elem(ustawienia);
+     zmien_kolor_pokarmu(ustawienia);
      menu_ustawienia(ustawienia);
      break;
     case 3:
@@ -594,41 +594,41 @@ void zmien_kolor_weza(konf ** ustawienia)
 
 //----------------------------------------------------------------------
 
-void zmien_kolor_elem(konf ** ustawienia)
+void zmien_kolor_pokarmu(konf ** ustawienia)
 {
  int klawisz;
  const char* naglowek = " Ustawienia :";
- const char* tytyl = "** Ustaw kolor elementu **";
- WINDOW * okno_kolor_elem;
+ const char* tytyl = "** Ustaw kolor pokarmu **";
+ WINDOW * okno_kolor_pokarmu;
  noecho();
- okno_kolor_elem=newwin(0, 0, 0, 0);
- keypad(okno_kolor_elem,TRUE); //support do klawiszy funkcyjnych
+ okno_kolor_pokarmu=newwin(0, 0, 0, 0);
+ keypad(okno_kolor_pokarmu,TRUE); //support do klawiszy funkcyjnych
  do
  {
-  wielkosc_okna(&okno_kolor_elem);
-  logo_snake (&okno_kolor_elem,ustawienia);
-  mvwprintw(okno_kolor_elem,Y-2,(kolumny-strlen(naglowek))/2, "%s", naglowek);
-  mvwprintw(okno_kolor_elem,Y,(kolumny-strlen(tytyl))/2, "%s", tytyl);
-  init_pair(2,(*ustawienia)->kolor_elem,COLOR_BLACK);
-  wattrset(okno_kolor_elem, COLOR_PAIR(2));
-  wattron(okno_kolor_elem,A_BOLD);
-  mvwprintw(okno_kolor_elem,Y+2,(kolumny-2)/2,"%c",(*ustawienia)->symb_elem);
-  wrefresh(okno_kolor_elem);
-  klawisz=pobierz_klawisz(okno_kolor_elem, true);
+  wielkosc_okna(&okno_kolor_pokarmu);
+  logo_snake (&okno_kolor_pokarmu,ustawienia);
+  mvwprintw(okno_kolor_pokarmu,Y-2,(kolumny-strlen(naglowek))/2, "%s", naglowek);
+  mvwprintw(okno_kolor_pokarmu,Y,(kolumny-strlen(tytyl))/2, "%s", tytyl);
+  init_pair(2,(*ustawienia)->kolor_pokarmu,COLOR_BLACK);
+  wattrset(okno_kolor_pokarmu, COLOR_PAIR(2));
+  wattron(okno_kolor_pokarmu,A_BOLD);
+  mvwprintw(okno_kolor_pokarmu,Y+2,(kolumny-2)/2,"%c",(*ustawienia)->symbol_pokarmu);
+  wrefresh(okno_kolor_pokarmu);
+  klawisz=pobierz_klawisz(okno_kolor_pokarmu, true);
   switch (klawisz)
   {
    case KEY_LEFT:
-    if( (*ustawienia)->kolor_elem > 1 )
-     (*ustawienia)->kolor_elem-=1;
+    if( (*ustawienia)->kolor_pokarmu > 1 )
+     (*ustawienia)->kolor_pokarmu-=1;
     break;
    case KEY_RIGHT:
-    if( (*ustawienia)->kolor_elem < 7 )
-     (*ustawienia)->kolor_elem+=1;
+    if( (*ustawienia)->kolor_pokarmu < 7 )
+     (*ustawienia)->kolor_pokarmu+=1;
     break;
   }
  }
  while (klawisz!='\n');
- delwin(okno_kolor_elem);
+ delwin(okno_kolor_pokarmu);
 }
 
 //----------------------------------------------------------------------
@@ -732,8 +732,8 @@ void zapis_ustawien (konf **ustawienia)
  if (plik != NULL)
  {
   fseek(plik,SEEK_SET,0);
-  // Linia 1: szybkosc, 2: kolor_weza, 3: kolor_elem, 4: przenikanie (1/0), 5: wysokosc, 6: szerokosc
-  fprintf(plik,"%d\n%d\n%d\n%d\n%d\n%d\n", (*ustawienia)->szybkosc, (*ustawienia)->kolor_weza, (*ustawienia)->kolor_elem, (*ustawienia)->przenikanie ? 1 : 0, (*ustawienia)->wysokosc, (*ustawienia)->szerokosc);
+  // Linia 1: szybkosc, 2: kolor_weza, 3: kolor_pokarmu, 4: przenikanie (1/0), 5: wysokosc, 6: szerokosc
+  fprintf(plik,"%d\n%d\n%d\n%d\n%d\n%d\n", (*ustawienia)->szybkosc, (*ustawienia)->kolor_weza, (*ustawienia)->kolor_pokarmu, (*ustawienia)->przenikanie ? 1 : 0, (*ustawienia)->wysokosc, (*ustawienia)->szerokosc);
   fclose(plik);
   mvwprintw(okno_zapis,Y,(kolumny-strlen(tytyl))/2, "%s", tytyl);
   mvwprintw(okno_zapis,Y+2,(kolumny-strlen(tekst1))/2, "%s",tekst1);
@@ -1107,11 +1107,11 @@ void generuj_los (snake ** los, konf ** ustawienia)
 
 void rysuj_los (WINDOW * okno_gra, snake ** los, konf ** ustawienia)
 {
-// funkcja rysuje element w oknie gry
- init_pair(5,(*ustawienia)->kolor_elem,COLOR_BLACK);
+// funkcja rysuje pokarm w oknie gry
+ init_pair(5,(*ustawienia)->kolor_pokarmu,COLOR_BLACK);
  wattrset(okno_gra,COLOR_PAIR(5));
  wattron(okno_gra,A_BOLD);
- mvwprintw(okno_gra,(*los)->y,(*los)->x,"%c",(*ustawienia)->symb_elem);
+ mvwprintw(okno_gra,(*los)->y,(*los)->x,"%c",(*ustawienia)->symbol_pokarmu);
 }
 
 //----------------------------------------------------------------------
@@ -1144,7 +1144,7 @@ void rysuj_pasek_gorny(WINDOW * okno_pasek, snake ** waz, konf ** ustawienia)
 
 void sprawdz_punkt (snake **waz, snake ** los, konf ** ustawienia)
 {
- // funkcja sprawdza czy element nie został wylosowany na wężu
+ // funkcja sprawdza czy pokarm nie został wylosowany na wężu
  bool kolizja;
  do
  {
