@@ -60,7 +60,7 @@ void zapis_ustawien (konf **ustawienia);
 // gra
 void gra (konf ** ustawienia);
 void generuj_weza(snake **waz);
-void rysuj_weza(WINDOW * okno_gra, snake **waz, konf ** ustawienia);
+void rysuj_weza(WINDOW * okno_gra, snake **waz, konf ** ustawienia, char kierunek);
 int sprawdz_weza(snake ** waz);
 int przesun_weza(snake ** waz ,snake ** los ,char kierunek, konf ** ustawienia);
 int koniec_gry(WINDOW * okno_gra, snake ** waz, konf ** ustawienia);
@@ -799,7 +799,7 @@ if( (*ustawienia)->wysokosc > wiersze - 1)
   wattrset(okno_gra, COLOR_PAIR(8));
   box (okno_gra,0,0);
   
-  rysuj_weza(okno_gra,&waz,ustawienia);
+  rysuj_weza(okno_gra,&waz,ustawienia,kierunek);
   rysuj_los(okno_gra,&los,ustawienia);
   wrefresh(okno_gra);
 
@@ -898,18 +898,37 @@ void generuj_weza(snake **waz)
 
 //----------------------------------------------------------------------
 
-void rysuj_weza(WINDOW * okno_gra, snake **waz, konf ** ustawienia)
+void rysuj_weza(WINDOW * okno_gra, snake **waz, konf ** ustawienia, char kierunek)
 {
+ char symbol_glowy;
  init_pair(4,(*ustawienia)->kolor_weza,COLOR_BLACK);
  wattrset(okno_gra,COLOR_PAIR(4)); 	 
  wattron(okno_gra,A_BOLD);
  snake * tmpx = *waz;
  if (tmpx == NULL) return;
- // Przejdź do głowy
+ // Przejdź do głowy węża
  while(tmpx->head != NULL)
   tmpx = tmpx->head;
- // Rysowanie GŁOWY
- mvwprintw(okno_gra, tmpx->y, tmpx->x, "O");
+ // Wybór symbolu głowy w zależności od kierunku
+ switch (kierunek)
+ {
+  case 'l':
+   symbol_glowy = '<';
+   break;
+  case 'p':
+   symbol_glowy = '>';
+   break;
+  case 'd':
+   symbol_glowy = 'V';
+   break;
+  case 'g':
+  default:
+   symbol_glowy = '^';
+   break;
+ }
+ // RYSOWANIE GŁOWY (brakowało tej linii):
+ mvwaddch(okno_gra, tmpx->y, tmpx->x, symbol_glowy);
+ // Przejście do segmentów ciała
  tmpx = tmpx->tail;
  // Rysowanie TUŁOWIA i OGONA
  while(tmpx != NULL)
@@ -917,12 +936,12 @@ void rysuj_weza(WINDOW * okno_gra, snake **waz, konf ** ustawienia)
   if (tmpx->tail == NULL)
   {
    // OGON
-   mvwprintw(okno_gra, tmpx->y, tmpx->x, ".");
+   mvwaddch(okno_gra, tmpx->y, tmpx->x, '.');
   }
   else
   {
    // TUŁÓW
-   mvwprintw(okno_gra, tmpx->y, tmpx->x, "o");
+   mvwaddch(okno_gra, tmpx->y, tmpx->x, 'o');
   }
   tmpx = tmpx->tail;
  }
